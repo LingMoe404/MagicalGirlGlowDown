@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 
+class LightingError(Exception):
+    """A recoverable target-specific lighting operation failure."""
+
+
 @dataclass(frozen=True, slots=True)
 class TargetIdentity:
     backend: str

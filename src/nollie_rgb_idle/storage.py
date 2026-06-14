@@ -5,8 +5,10 @@ import os
 from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from .domain import AppSettings, BrightnessSnapshot
+from .lighting import LightingSnapshot, TargetIdentity
 
 
 class StateStore:
@@ -15,15 +17,23 @@ class StateStore:
         self.state_path = data_dir / "state.json"
         self.settings_path = data_dir / "settings.json"
 
-    def load_snapshots(self) -> dict[str, BrightnessSnapshot]:
+    def load_snapshots(self) -> dict[str, LightingSnapshot]:
         if not self.state_path.exists():
             return {}
         try:
             payload = json.loads(self.state_path.read_text(encoding="utf-8"))
-            return {
-                key: BrightnessSnapshot.from_dict(item)
-                for key, item in payload.get("snapshots", {}).items()
-            }
+            version = int(payload.get("version", 1))
+            snapshots = payload.get("snapshots", {})
+            if not isinstance(snapshots, dict):
+                raise ValueError("snapshots must be a dictionary")
+            if version == 1:
+                return self._migrate_v1_snapshots(snapshots)
+            if version == 2:
+                return {
+                    key: LightingSnapshot.from_dict(item)
+                    for key, item in snapshots.items()
+                }
+            raise ValueError(f"unsupported state version: {version}")
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
             quarantine = self.data_dir / f"state.corrupt-{stamp}.json"
@@ -31,9 +41,24 @@ class StateStore:
                 os.replace(self.state_path, quarantine)
             return {}
 
-    def save_snapshots(self, snapshots: dict[str, BrightnessSnapshot]) -> None:
-        payload = {"version": 1, "snapshots": {k: v.to_dict() for k, v in snapshots.items()}}
+    def save_snapshots(self, snapshots: dict[str, LightingSnapshot]) -> None:
+        payload = {"version": 2, "snapshots": {k: v.to_dict() for k, v in snapshots.items()}}
         self._atomic_write(self.state_path, payload)
+
+    @staticmethod
+    def _migrate_v1_snapshots(
+        snapshots: dict[str, Any],
+    ) -> dict[str, LightingSnapshot]:
+        migrated: dict[str, LightingSnapshot] = {}
+        for item in snapshots.values():
+            legacy = BrightnessSnapshot.from_dict(item)
+            identity = TargetIdentity("nollie", legacy.controller.key)
+            migrated[identity.key] = LightingSnapshot(
+                identity=identity,
+                state={"canvases": list(legacy.canvases)},
+                pending_restore=legacy.pending_restore,
+            )
+        return migrated
 
     def load_settings(self) -> AppSettings:
         if not self.settings_path.exists():
