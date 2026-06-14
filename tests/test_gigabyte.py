@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,6 +26,35 @@ def _write_helper(path: Path, response: dict[str, object]) -> tuple[str, ...]:
         encoding="utf-8",
     )
     return (sys.executable, str(path))
+
+
+async def test_helper_process_starts_without_a_console_window(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeProcess:
+        returncode = 0
+
+        async def communicate(self, encoded: bytes) -> tuple[bytes, bytes]:
+            request = json.loads(encoded)
+            response = {
+                "schema": 1,
+                "requestId": request["requestId"],
+                "ok": True,
+                "result": {"boardFingerprint": "board-A", "zones": []},
+                "error": None,
+            }
+            return json.dumps(response).encode(), b""
+
+    async def fake_create_subprocess_exec(*command, **options):
+        captured["command"] = command
+        captured["options"] = options
+        return FakeProcess()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_create_subprocess_exec)
+
+    await GigabyteHelperClient(("helper.exe",)).probe()
+
+    assert captured["options"]["creationflags"] == subprocess.CREATE_NO_WINDOW
 
 
 async def test_probe_parses_supported_zones(tmp_path: Path) -> None:

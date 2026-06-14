@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -142,6 +143,7 @@ class GigabyteHelperClient:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
         except OSError as exc:
             raise GigabyteError(f"could not start Gigabyte helper: {exc}") from exc
