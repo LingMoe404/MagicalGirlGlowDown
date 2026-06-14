@@ -162,15 +162,24 @@ class NollieLightingTarget:
         self.identity = TargetIdentity("nollie", controller.identity.key)
 
     async def snapshot(self) -> dict[str, object]:
-        canvases = await self.controller.read_standby_brightness()
+        try:
+            canvases = await self.controller.read_standby_brightness()
+        except ValueError as exc:
+            raise LightingError(str(exc)) from exc
         return {"canvases": list(canvases)}
 
     async def blackout(self, snapshot: dict[str, object]) -> None:
         canvases = self._canvases(snapshot)
-        await self.controller.write_standby_brightness(tuple(0 for _ in canvases))
+        try:
+            await self.controller.write_standby_brightness(tuple(0 for _ in canvases))
+        except ValueError as exc:
+            raise LightingError(str(exc)) from exc
 
     async def restore(self, snapshot: dict[str, object]) -> None:
-        await self.controller.write_standby_brightness(self._canvases(snapshot))
+        try:
+            await self.controller.write_standby_brightness(self._canvases(snapshot))
+        except ValueError as exc:
+            raise LightingError(str(exc)) from exc
 
     def should_blackout(self, snapshot: dict[str, object]) -> bool:
         canvases = self._canvases(snapshot, allow_empty=True)

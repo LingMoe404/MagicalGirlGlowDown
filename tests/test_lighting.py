@@ -9,6 +9,32 @@ from nollie_rgb_idle.protocol import NollieLightingTarget
 from .fakes import FakeController, FakeLightingTarget
 
 
+class ValueErrorController:
+    def __init__(
+        self,
+        model: str,
+        serial: str,
+        brightness: list[int],
+        *,
+        fail_read: bool = False,
+        fail_write: bool = False,
+    ) -> None:
+        self.identity = ControllerId(model, serial)
+        self.brightness = brightness
+        self.fail_read = fail_read
+        self.fail_write = fail_write
+
+    async def read_standby_brightness(self) -> tuple[int, ...]:
+        if self.fail_read:
+            raise ValueError("bad controller read")
+        return tuple(self.brightness)
+
+    async def write_standby_brightness(self, values: tuple[int, ...]) -> None:
+        if self.fail_write:
+            raise ValueError("bad controller write")
+        self.brightness[:] = values
+
+
 def test_snapshot_round_trip_preserves_opaque_state() -> None:
     snapshot = LightingSnapshot(
         identity=TargetIdentity("nollie", "Nollie16:ABC"),
@@ -44,6 +70,28 @@ async def test_nollie_target_uses_standby_brightness_state() -> None:
 
     await target.restore(state)
     assert controller.brightness == [30, 80]
+
+
+async def test_nollie_target_translates_read_value_error() -> None:
+    controller = ValueErrorController("Nollie16", "ABC", [30], fail_read=True)
+    target = NollieLightingTarget(controller)
+
+    with pytest.raises(LightingError) as excinfo:
+        await target.snapshot()
+
+    assert str(excinfo.value) == "bad controller read"
+    assert isinstance(excinfo.value.__cause__, ValueError)
+
+
+async def test_nollie_target_translates_write_value_error() -> None:
+    controller = ValueErrorController("Nollie16", "ABC", [30], fail_write=True)
+    target = NollieLightingTarget(controller)
+
+    with pytest.raises(LightingError) as excinfo:
+        await target.restore({"canvases": [30]})
+
+    assert str(excinfo.value) == "bad controller write"
+    assert isinstance(excinfo.value.__cause__, ValueError)
 
 
 @pytest.mark.parametrize(

@@ -10,6 +10,32 @@ from nollie_rgb_idle.storage import StateStore
 from tests.fakes import FakeController, FakeLightingTarget
 
 
+class ValueErrorController:
+    def __init__(
+        self,
+        model: str,
+        serial: str,
+        brightness: list[int],
+        *,
+        fail_read: bool = False,
+        fail_write: bool = False,
+    ) -> None:
+        self.identity = ControllerId(model, serial)
+        self.brightness = brightness
+        self.fail_read = fail_read
+        self.fail_write = fail_write
+
+    async def read_standby_brightness(self) -> tuple[int, ...]:
+        if self.fail_read:
+            raise ValueError("bad controller read")
+        return tuple(self.brightness)
+
+    async def write_standby_brightness(self, values: tuple[int, ...]) -> None:
+        if self.fail_write:
+            raise ValueError("bad controller write")
+        self.brightness[:] = values
+
+
 class FailingLightingTarget(FakeLightingTarget):
     def __init__(
         self,
@@ -224,6 +250,52 @@ async def test_malformed_nollie_restore_does_not_stop_later_target(tmp_path) -> 
     assert service.snapshots["nollie:Nollie16:A"].pending_restore is True
     assert service.snapshots["gigabyte:board"].pending_restore is False
     assert gigabyte.state == {"zones": [{"brightness": 80}]}
+    assert service.state is ServiceState.DIMMED
+
+
+async def test_value_error_during_nollie_dim_is_translated_and_isolated(tmp_path) -> None:
+    bad = NollieLightingTarget(
+        ValueErrorController("Nollie16", "A", [30], fail_read=True)
+    )
+    good_controller = ValueErrorController("Nollie8", "B", [80])
+    good = NollieLightingTarget(good_controller)
+    service = LightingService(StateStore(tmp_path))
+
+    await service.dim([bad, good])
+
+    assert good_controller.brightness == [0]
+    assert service.state is ServiceState.DIMMED
+
+
+async def test_value_error_during_nollie_restore_is_translated_and_isolated(
+    tmp_path,
+) -> None:
+    store = StateStore(tmp_path)
+    snapshots = {
+        "nollie:Nollie16:A": LightingSnapshot(
+            TargetIdentity("nollie", "Nollie16:A"),
+            {"canvases": [30]},
+            True,
+        ),
+        "nollie:Nollie8:B": LightingSnapshot(
+            TargetIdentity("nollie", "Nollie8:B"),
+            {"canvases": [55]},
+            True,
+        ),
+    }
+    store.save_snapshots(snapshots)
+    service = LightingService(store)
+    bad = NollieLightingTarget(
+        ValueErrorController("Nollie16", "A", [30], fail_write=True)
+    )
+    good_controller = ValueErrorController("Nollie8", "B", [0])
+    good = NollieLightingTarget(good_controller)
+
+    await service.restore([bad, good])
+
+    assert service.snapshots["nollie:Nollie16:A"].pending_restore is True
+    assert service.snapshots["nollie:Nollie8:B"].pending_restore is False
+    assert good_controller.brightness == [55]
     assert service.state is ServiceState.DIMMED
 
 
