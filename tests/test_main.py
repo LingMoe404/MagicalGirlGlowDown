@@ -17,6 +17,12 @@ def test_cli_parses_gigabyte_probe() -> None:
     assert args.gigabyte_probe is True
 
 
+def test_cli_parses_gigabyte_diagnostics() -> None:
+    args = build_parser().parse_args(["--gigabyte-diagnostics"])
+
+    assert args.gigabyte_diagnostics is True
+
+
 def test_cli_parses_gigabyte_snapshot() -> None:
     args = build_parser().parse_args(["--gigabyte-snapshot"])
 

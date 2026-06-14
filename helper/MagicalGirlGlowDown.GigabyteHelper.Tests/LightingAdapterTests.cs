@@ -86,6 +86,18 @@ public sealed class LightingAdapterTests
         Assert.Equal("invalid_vendor_state", error.Code);
     }
 
+    [Fact]
+    public async Task DiagnosticsPreservesVendorLayoutJson()
+    {
+        var adapter = CreateAdapter(new FakeLightingSession("[]"));
+
+        var diagnostics = await adapter.DiagnosticsAsync();
+
+        Assert.Equal(
+            """[{"led_type":3,"mapTo":4,"mcu_idx":0,"zIdx":0}]""",
+            diagnostics.GetProperty("layout").GetString());
+    }
+
     [Theory]
     [InlineData("Apply")]
     [InlineData("GetLedSetting")]
@@ -136,6 +148,14 @@ public sealed class LightingAdapterTests
         public string GetLedSetting() => state;
 
         public string GetDiagnostics() => "fake diagnostics";
+
+        public GccVendorDiagnostics GetDiagnosticIdentity() =>
+            new(
+                "IT8297",
+                106,
+                39845983,
+                1,
+                """[{"led_type":3,"mapTo":4,"mcu_idx":0,"zIdx":0}]""");
 
         public int SetAllLedColor(uint color)
         {

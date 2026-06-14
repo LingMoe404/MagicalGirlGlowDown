@@ -13,6 +13,7 @@ def requires_elevation(
     gigabyte_probe: bool,
     install_autostart: bool,
     remove_autostart: bool,
+    gigabyte_diagnostics: bool = False,
     gigabyte_snapshot: bool = False,
     gigabyte_test_all: bool = False,
 ) -> bool:

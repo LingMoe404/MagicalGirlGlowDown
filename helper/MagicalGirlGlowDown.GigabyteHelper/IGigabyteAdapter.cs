@@ -5,6 +5,7 @@ namespace MagicalGirlGlowDown.GigabyteHelper;
 public interface IGigabyteAdapter
 {
     Task<JsonElement> ProbeAsync();
+    Task<JsonElement> DiagnosticsAsync();
     Task<JsonElement> SnapshotAsync(JsonElement? payload);
     Task<JsonElement> BlackoutAsync(JsonElement? payload);
     Task<JsonElement> RestoreAsync(JsonElement? payload);
@@ -21,6 +22,9 @@ public sealed class UnavailableGigabyteAdapter : IGigabyteAdapter
         new("vendor_adapter_unavailable", "The GCC vendor adapter is unavailable.");
 
     public Task<JsonElement> ProbeAsync() => Task.FromException<JsonElement>(Unavailable());
+
+    public Task<JsonElement> DiagnosticsAsync() =>
+        Task.FromException<JsonElement>(Unavailable());
 
     public Task<JsonElement> SnapshotAsync(JsonElement? payload) =>
         Task.FromException<JsonElement>(Unavailable());

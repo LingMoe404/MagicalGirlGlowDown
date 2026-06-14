@@ -86,6 +86,33 @@ async def test_probe_parses_supported_zones(tmp_path: Path) -> None:
     ]
 
 
+async def test_diagnostics_returns_read_only_vendor_identity(tmp_path: Path) -> None:
+    command = _write_helper(
+        tmp_path / "helper.py",
+        {
+            "schema": 1,
+            "requestId": "",
+            "ok": True,
+            "result": {
+                "readOnly": True,
+                "deviceName": "IT8297",
+                "mbId": 106,
+                "ledId": 39845983,
+                "mcuType": 1,
+                "layout": '[{"zIdx":0}]',
+            },
+            "error": None,
+        },
+    )
+
+    diagnostics = await GigabyteHelperClient(command).diagnostics()
+
+    assert diagnostics["readOnly"] is True
+    assert diagnostics["mbId"] == 106
+    assert diagnostics["ledId"] == 39845983
+    assert diagnostics["layout"] == '[{"zIdx":0}]'
+
+
 async def test_timeout_becomes_backend_error(tmp_path: Path) -> None:
     helper = tmp_path / "hang.py"
     helper.write_text("import time\ntime.sleep(60)\n", encoding="utf-8")

@@ -88,15 +88,23 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
 
     public string GetDiagnostics()
     {
-        var deviceName = vendorType.GetProperty(
-            "DeviceName",
-            BindingFlags.Instance | BindingFlags.Public)?.GetValue(vendor);
-        return $"DeviceName={deviceName ?? "null"}, "
-            + $"MbId={InvokeAllowed("GetMbId")}, "
-            + $"LedId={InvokeAllowed("GetLedId")}, "
-            + $"McuType={InvokeAllowed("GetMcuType")}, "
-            + $"Layout={InvokeAllowed("GetLedLayoutInfo")}";
+        var diagnostics = GetDiagnosticIdentity();
+        return $"DeviceName={diagnostics.DeviceName ?? "null"}, "
+            + $"MbId={diagnostics.MbId}, "
+            + $"LedId={diagnostics.LedId}, "
+            + $"McuType={diagnostics.McuType}, "
+            + $"Layout={diagnostics.Layout}";
     }
+
+    public GccVendorDiagnostics GetDiagnosticIdentity() =>
+        new(
+            vendorType.GetProperty(
+                "DeviceName",
+                BindingFlags.Instance | BindingFlags.Public)?.GetValue(vendor)?.ToString(),
+            Convert.ToInt32(InvokeAllowed("GetMbId")),
+            Convert.ToInt32(InvokeAllowed("GetLedId")),
+            Convert.ToInt32(InvokeAllowed("GetMcuType")),
+            InvokeAllowed("GetLedLayoutInfo")?.ToString() ?? "");
 
     public int SetAllLedColor(uint color) => Convert.ToInt32(
         InvokeAllowed("SetAllLedColor", color));

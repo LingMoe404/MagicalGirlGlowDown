@@ -24,6 +24,25 @@ public sealed class ProtocolTests
     }
 
     [Fact]
+    public async Task DiagnosticsReturnsReadOnlyVendorIdentity()
+    {
+        var server = new HelperServer(new FakeGigabyteAdapter());
+
+        var response = await server.HandleAsync(
+            new HelperRequest(1, "diagnostics", "diagnostics", null));
+
+        Assert.True(response.Ok);
+        Assert.True(response.Result!.Value.GetProperty("readOnly").GetBoolean());
+        Assert.Equal(106, response.Result.Value.GetProperty("mbId").GetInt32());
+        Assert.Equal(
+            39845983,
+            response.Result.Value.GetProperty("ledId").GetInt32());
+        Assert.Equal(
+            """[{"zIdx":0}]""",
+            response.Result.Value.GetProperty("layout").GetString());
+    }
+
+    [Fact]
     public async Task WriteRequiresMatchingBoardFingerprint()
     {
         var server = new HelperServer(new FakeGigabyteAdapter("board-A"));

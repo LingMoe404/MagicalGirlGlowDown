@@ -41,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="read GCC motherboard and zone metadata without changing lighting",
     )
     parser.add_argument(
+        "--gigabyte-diagnostics",
+        action="store_true",
+        help="read GCC vendor motherboard identifiers without changing lighting",
+    )
+    parser.add_argument(
         "--gigabyte-snapshot",
         action="store_true",
         help="capture current Gigabyte lighting state without changing it",
@@ -118,6 +123,7 @@ def main() -> int:
         requires_elevation(
             simulate=args.simulate,
             gigabyte_probe=args.gigabyte_probe,
+            gigabyte_diagnostics=args.gigabyte_diagnostics,
             gigabyte_snapshot=args.gigabyte_snapshot,
             gigabyte_test_all=args.gigabyte_test_all,
             install_autostart=args.install_autostart,
@@ -150,6 +156,17 @@ def main() -> int:
                         for zone in probe.zones
                     ],
                 },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    if args.gigabyte_diagnostics:
+        from .gigabyte import GigabyteHelperClient
+
+        print(
+            json.dumps(
+                asyncio.run(GigabyteHelperClient().diagnostics()),
                 ensure_ascii=False,
                 indent=2,
             )

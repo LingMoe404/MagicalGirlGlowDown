@@ -16,6 +16,17 @@ public sealed class FakeGigabyteAdapter(string boardFingerprint = "board-A") : I
             },
         }));
 
+    public Task<JsonElement> DiagnosticsAsync() =>
+        Task.FromResult(JsonSerializer.SerializeToElement(new
+        {
+            readOnly = true,
+            deviceName = "IT8297",
+            mbId = 106,
+            ledId = 39845983,
+            mcuType = 1,
+            layout = """[{"zIdx":0}]""",
+        }));
+
     public Task<JsonElement> SnapshotAsync(JsonElement? payload)
     {
         ValidateBoard(payload);

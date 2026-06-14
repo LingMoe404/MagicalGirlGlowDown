@@ -7,10 +7,18 @@ public sealed record GccBoardDescription(
     IReadOnlyDictionary<string, string> AssemblyVersions,
     IReadOnlyList<string> ZoneIds);
 
+public sealed record GccVendorDiagnostics(
+    string? DeviceName,
+    int MbId,
+    int LedId,
+    int McuType,
+    string Layout);
+
 public interface IGccLightingSession
 {
     string GetLedSetting();
     string GetDiagnostics();
+    GccVendorDiagnostics GetDiagnosticIdentity();
     int SetAllLedColor(uint color);
     int ApplyState(string vendorState);
 }
@@ -32,6 +40,21 @@ public sealed class GccLightingAdapter(
             assemblyVersions = board.AssemblyVersions,
             zones = board.ZoneIds.Select(id => new { id, category = "unsupported" }),
         }));
+
+    public Task<JsonElement> DiagnosticsAsync()
+    {
+        EnsureGccIsClosed();
+        var diagnostics = createSession().GetDiagnosticIdentity();
+        return Task.FromResult(JsonSerializer.SerializeToElement(new
+        {
+            readOnly = true,
+            deviceName = diagnostics.DeviceName,
+            mbId = diagnostics.MbId,
+            ledId = diagnostics.LedId,
+            mcuType = diagnostics.McuType,
+            layout = diagnostics.Layout,
+        }));
+    }
 
     public Task<JsonElement> SnapshotAsync(JsonElement? payload)
     {

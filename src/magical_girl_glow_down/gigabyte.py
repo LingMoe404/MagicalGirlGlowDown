@@ -95,6 +95,9 @@ class GigabyteHelperClient:
         )
         return GigabyteProbe(board, tuple(zones), board_details, versions)
 
+    async def diagnostics(self) -> dict[str, object]:
+        return await self._request("diagnostics")
+
     async def snapshot(
         self,
         board_fingerprint: str,

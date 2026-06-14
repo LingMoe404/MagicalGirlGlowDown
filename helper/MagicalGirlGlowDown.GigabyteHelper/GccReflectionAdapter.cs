@@ -71,6 +71,12 @@ public sealed class GccReflectionAdapter : IGigabyteAdapter
                 .ToArray());
     }
 
+    public Task<JsonElement> DiagnosticsAsync() =>
+        Task.FromException<JsonElement>(
+            new AdapterException(
+                "diagnostics_unavailable",
+                "Vendor diagnostics require an active lighting session."));
+
     public Task<JsonElement> SnapshotAsync(JsonElement? payload) =>
         Task.FromException<JsonElement>(WritesUnavailable());
 

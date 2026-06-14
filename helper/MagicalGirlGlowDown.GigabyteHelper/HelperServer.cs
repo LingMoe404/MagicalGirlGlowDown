@@ -19,6 +19,7 @@ public sealed class HelperServer(IGigabyteAdapter adapter)
             var result = request.Operation switch
             {
                 "probe" => await adapter.ProbeAsync(),
+                "diagnostics" => await adapter.DiagnosticsAsync(),
                 "snapshot" => await adapter.SnapshotAsync(request.Payload),
                 "blackout" => await adapter.BlackoutAsync(request.Payload),
                 "restore" => await adapter.RestoreAsync(request.Payload),
