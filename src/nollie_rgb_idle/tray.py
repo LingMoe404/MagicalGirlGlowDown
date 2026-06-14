@@ -20,18 +20,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .app_guard import original_app_running
+from .app_guard import is_gcc_running, is_original_app_running, running_process_names
 from .autostart import AutostartManager, WindowsRunRegistry
 from .discovery import discover_controllers
 from .domain import AppSettings
-from .protocol import NollieController
-from .service import BrightnessService
+from .gigabyte import GigabyteError, GigabyteHelperClient, GigabyteLightingTarget
+from .lighting import LightingTarget
+from .protocol import NollieController, NollieLightingTarget
+from .service import LightingService
 from .storage import StateStore
 from .windows_input import (
     GameControllerMonitor,
     keyboard_mouse_idle_seconds,
     register_game_controller_raw_input,
 )
+from .worker import WorkerPolicy
 
 log = logging.getLogger(__name__)
 WM_INPUT = 0x00FF
@@ -69,7 +72,8 @@ class Worker(threading.Thread):
         self.idle_seconds = idle_seconds
         self.monitor = monitor
         self.bridge = bridge
-        self.service = BrightnessService(StateStore(data_dir))
+        self.service = LightingService(StateStore(data_dir))
+        self.policy = WorkerPolicy(self.service)
         self.stop_event = threading.Event()
         self.pause_event = threading.Event()
         self.restore_event = threading.Event()
@@ -79,43 +83,104 @@ class Worker(threading.Thread):
 
     async def _run(self) -> None:
         controllers: list[NollieController] = []
+        nollie_targets: list[NollieLightingTarget] = []
+        gigabyte_target: GigabyteLightingTarget | None = None
         last_scan = 0.0
         last_dim_scan = 0.0
+        next_gigabyte_scan = 0.0
+        was_gcc_running = False
         try:
             while not self.stop_event.is_set():
                 now = time.monotonic()
-                original_running = original_app_running()
+                process_names = running_process_names()
+                original_running = is_original_app_running(process_names)
+                gcc_is_running = is_gcc_running(process_names)
                 if not original_running and now - last_scan >= 2:
                     for controller in controllers:
                         controller.close()
                     controllers = discover_controllers()
+                    nollie_targets = [
+                        NollieLightingTarget(controller)
+                        for controller in controllers
+                    ]
                     last_scan = now
+                if gcc_is_running:
+                    next_gigabyte_scan = now + 2
+                elif was_gcc_running:
+                    gigabyte_target = None
+                    next_gigabyte_scan = now + 2
+                elif gigabyte_target is None and now >= next_gigabyte_scan:
+                    gigabyte_target = await self._discover_gigabyte_target()
+                    next_gigabyte_scan = now + 5
                 self.monitor.poll()
-                paused = self.pause_event.is_set() or original_running
                 active = (
                     keyboard_mouse_idle_seconds() < self.idle_seconds
                     or now - self.monitor.last_activity < self.idle_seconds
                 )
-                if paused or active or self.restore_event.is_set():
-                    if self.service.has_pending_restore:
-                        await self.service.restore(controllers)
-                    self.restore_event.clear()
-                    status = "Paused: NollieRGB is open" if original_running else "Active"
-                    if original_running and controllers:
-                        for controller in controllers:
-                            controller.close()
-                        controllers = []
-                else:
-                    if self.service.state.value != "dimmed" or now - last_dim_scan >= 2:
-                        await self.service.dim(controllers)
+                targets: list[LightingTarget] = list(nollie_targets)
+                if gigabyte_target is not None:
+                    targets.append(gigabyte_target)
+                restore_requested = self.restore_event.is_set()
+                should_tick = (
+                    active
+                    or self.pause_event.is_set()
+                    or restore_requested
+                    or original_running
+                    or gcc_is_running
+                    or self.service.state.value != "dimmed"
+                    or now - last_dim_scan >= 2
+                )
+                if should_tick:
+                    status = await self.policy.tick(
+                        targets,
+                        idle=not active,
+                        gcc_running=gcc_is_running,
+                        nolliergb_running=original_running,
+                        manually_paused=self.pause_event.is_set(),
+                        restore_requested=restore_requested,
+                    )
+                    if not active:
                         last_dim_scan = now
-                    status = "Dimmed" if controllers else "Waiting for controller"
+                else:
+                    status = "Dimmed" if targets else "Waiting for lighting devices"
+                self.restore_event.clear()
+                if original_running and controllers:
+                    for controller in controllers:
+                        controller.close()
+                    controllers = []
+                    nollie_targets = []
+                if gcc_is_running:
+                    gigabyte_target = None
+                was_gcc_running = gcc_is_running
                 self.bridge.status_changed.emit(status)
                 await asyncio.sleep(0.25)
         finally:
-            await self.service.restore(controllers)
+            targets = list(nollie_targets)
+            if gigabyte_target is not None:
+                targets.append(gigabyte_target)
+            await self.service.restore(targets)
             for controller in controllers:
                 controller.close()
+
+    @staticmethod
+    async def _discover_gigabyte_target() -> GigabyteLightingTarget | None:
+        client = GigabyteHelperClient()
+        try:
+            probe = await client.probe()
+        except GigabyteError as exc:
+            log.debug("Gigabyte lighting probe unavailable: %s", exc)
+            return None
+        if not probe.zones or any(
+            zone.category == "unsupported"
+            for zone in probe.zones
+        ):
+            log.warning("Gigabyte lighting has unvalidated zones; backend disabled")
+            return None
+        return GigabyteLightingTarget(
+            client,
+            probe.board_fingerprint,
+            tuple(zone.id for zone in probe.zones),
+        )
 
 
 def _icon(color: str) -> QIcon:

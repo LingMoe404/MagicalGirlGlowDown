@@ -7,7 +7,11 @@ def is_original_app_running(process_names: Iterable[str]) -> bool:
     return any(name.casefold() == "nolliergb.exe" for name in process_names)
 
 
-def original_app_running() -> bool:
+def is_gcc_running(process_names: Iterable[str]) -> bool:
+    return any(name.casefold() == "gcc.exe" for name in process_names)
+
+
+def running_process_names() -> list[str]:
     import psutil
 
     names: list[str] = []
@@ -18,4 +22,12 @@ def original_app_running() -> bool:
                 names.append(str(name))
         except (psutil.AccessDenied, psutil.NoSuchProcess):
             continue
-    return is_original_app_running(names)
+    return names
+
+
+def original_app_running() -> bool:
+    return is_original_app_running(running_process_names())
+
+
+def gcc_running() -> bool:
+    return is_gcc_running(running_process_names())

@@ -94,6 +94,27 @@ class LightingService:
     def pause(self) -> None:
         self.state = ServiceState.PAUSED
 
+    def release(
+        self,
+        targets: Iterable[LightingTarget | NollieControllerProtocol],
+    ) -> None:
+        keys = {
+            self._lighting_target(target).identity.key
+            for target in targets
+        }
+        removed = {
+            key: self.snapshots.pop(key)
+            for key in keys
+            if key in self.snapshots
+        }
+        if not removed:
+            return
+        try:
+            self.store.save_snapshots(self.snapshots)
+        except (LightingError, OSError) as exc:
+            self.snapshots.update(removed)
+            log.warning("Could not release lighting ownership: %s", exc)
+
     @staticmethod
     def _lighting_target(
         item: LightingTarget | NollieControllerProtocol,
