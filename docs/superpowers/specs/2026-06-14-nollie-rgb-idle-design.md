@@ -1,4 +1,4 @@
-# NollieIdle Design
+# NollieRGBIdle Design
 
 ## Objective
 
@@ -129,7 +129,7 @@ records enough state to recover after a crash or restart.
 
 ## Coexistence With NollieRGB
 
-`NollieIdle` monitors for `NollieRGB.exe`.
+`NollieRGBIdle` monitors for `NollieRGB.exe`.
 
 When the original application starts:
 
@@ -146,7 +146,7 @@ is used.
 
 ## Persistence And Recovery
 
-Application data is stored under `%LOCALAPPDATA%\NollieIdle`.
+Application data is stored under `%LOCALAPPDATA%\NollieRGBIdle`.
 
 Persistent data includes:
 
