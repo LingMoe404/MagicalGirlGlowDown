@@ -37,8 +37,13 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
 
     public int ApplyState(string vendorState)
     {
-        vendorType.GetProperty("sInfo", BindingFlags.Instance | BindingFlags.Public)
-            ?.SetValue(vendor, vendorState);
+        var stateProperty = vendorType.GetProperty(
+            "sInfo",
+            BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new AdapterException(
+                "vendor_method_missing",
+                "GCC state property sInfo is unavailable.");
+        stateProperty.SetValue(vendor, vendorState);
         return Convert.ToInt32(InvokeAllowed("Apply", 3));
     }
 

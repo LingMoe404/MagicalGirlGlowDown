@@ -70,6 +70,22 @@ public sealed class LightingAdapterTests
         Assert.Equal("gcc_running", error.Code);
     }
 
+    [Fact]
+    public async Task SnapshotRejectsVendorStateWithWrongZoneCount()
+    {
+        var adapter = CreateAdapter(new FakeLightingSession("[]"));
+        var payload = JsonSerializer.SerializeToElement(new
+        {
+            boardFingerprint = "board-A",
+            zones = new[] { "profile-0" },
+        });
+
+        var error = await Assert.ThrowsAsync<AdapterException>(
+            () => adapter.SnapshotAsync(payload));
+
+        Assert.Equal("invalid_vendor_state", error.Code);
+    }
+
     [Theory]
     [InlineData("Apply")]
     [InlineData("GetLedSetting")]

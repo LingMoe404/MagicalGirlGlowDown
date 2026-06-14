@@ -102,9 +102,19 @@ class LightingService:
             self._lighting_target(target).identity.key
             for target in targets
         }
+        self._release_keys(keys)
+
+    def release_backend(self, backend: str) -> None:
+        self._release_keys(
+            key
+            for key, snapshot in self.snapshots.items()
+            if snapshot.identity.backend == backend
+        )
+
+    def _release_keys(self, keys: Iterable[str]) -> None:
         removed = {
             key: self.snapshots.pop(key)
-            for key in keys
+            for key in tuple(keys)
             if key in self.snapshots
         }
         if not removed:

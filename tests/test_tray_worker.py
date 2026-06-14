@@ -1,3 +1,4 @@
+from nollie_rgb_idle.lighting import LightingSnapshot, TargetIdentity
 from nollie_rgb_idle.service import LightingService
 from nollie_rgb_idle.storage import StateStore
 from nollie_rgb_idle.worker import WorkerPolicy
@@ -67,5 +68,20 @@ async def test_gcc_ownership_discards_stale_pending_snapshot(tmp_path) -> None:
 
     await policy.tick([gigabyte], idle=True)
     await policy.tick([gigabyte], idle=True, gcc_running=True)
+
+    assert "gigabyte:board" not in service.snapshots
+
+
+async def test_gcc_ownership_discards_orphaned_persisted_snapshot(tmp_path) -> None:
+    service = LightingService(StateStore(tmp_path))
+    service.snapshots["gigabyte:board"] = LightingSnapshot(
+        TargetIdentity("gigabyte", "board"),
+        {"zones": [{"id": "logo", "brightness": 80}]},
+        pending_restore=True,
+    )
+    service.store.save_snapshots(service.snapshots)
+    policy = WorkerPolicy(service)
+
+    await policy.tick([], idle=True, gcc_running=True)
 
     assert "gigabyte:board" not in service.snapshots

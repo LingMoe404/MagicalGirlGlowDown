@@ -44,6 +44,12 @@ public sealed class GccLightingAdapter(
                 "invalid_vendor_state",
                 "GCC returned a lighting state that is not an array.");
         }
+        if (document.RootElement.GetArrayLength() != board.ZoneIds.Count)
+        {
+            throw new AdapterException(
+                "invalid_vendor_state",
+                "GCC lighting state count does not match the validated zone count.");
+        }
         return Task.FromResult(JsonSerializer.SerializeToElement(new
         {
             schema = 1,
