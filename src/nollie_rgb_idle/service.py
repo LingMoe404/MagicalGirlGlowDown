@@ -24,6 +24,10 @@ class BrightnessService:
         self.snapshots = store.load_snapshots()
         self.state = ServiceState.ACTIVE
 
+    @property
+    def has_pending_restore(self) -> bool:
+        return any(item.pending_restore for item in self.snapshots.values())
+
     async def dim(self, controllers: Iterable[Controller]) -> None:
         self.state = ServiceState.DIMMING
         dimmed_any = False

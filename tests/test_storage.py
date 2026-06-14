@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from nollie_rgb_idle.domain import BrightnessSnapshot, ControllerId
+from nollie_rgb_idle.domain import AppSettings, BrightnessSnapshot, ControllerId
 from nollie_rgb_idle.storage import StateStore
 
 
@@ -19,3 +19,10 @@ def test_corrupt_state_is_quarantined(tmp_path: Path) -> None:
     store.state_path.write_text("{broken", encoding="utf-8")
     assert store.load_snapshots() == {}
     assert list(tmp_path.glob("state.corrupt-*.json"))
+
+
+def test_store_round_trips_settings(tmp_path: Path) -> None:
+    store = StateStore(tmp_path)
+    settings = AppSettings(idle_seconds=45, autostart=False)
+    store.save_settings(settings)
+    assert store.load_settings() == settings
