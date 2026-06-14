@@ -13,6 +13,13 @@ from pathlib import Path
 from .simulator import run_simulation
 
 
+def _restore_delay(value: str) -> float:
+    delay = float(value)
+    if not 1 <= delay <= 30:
+        raise argparse.ArgumentTypeError("restore delay must be between 1 and 30 seconds")
+    return delay
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="nollie-rgb-idle")
     parser.add_argument("--simulate", action="store_true", help="run without HID hardware")
@@ -25,6 +32,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--gigabyte-probe",
         action="store_true",
         help="read GCC motherboard and zone metadata without changing lighting",
+    )
+    parser.add_argument(
+        "--gigabyte-snapshot",
+        action="store_true",
+        help="capture current Gigabyte lighting state without changing it",
+    )
+    parser.add_argument(
+        "--gigabyte-test-all",
+        action="store_true",
+        help="temporarily turn off every validated Gigabyte zone",
+    )
+    parser.add_argument(
+        "--restore-after",
+        type=_restore_delay,
+        default=5.0,
+        help="seconds before automatic restore during --gigabyte-test-all",
     )
     return parser
 
@@ -45,6 +68,34 @@ async def _simulate(args: argparse.Namespace) -> int:
         )
     print(f"dimmed={result.dimmed}")
     print(f"restored={result.restored}")
+    return 0
+
+
+async def _gigabyte_snapshot() -> dict[str, object]:
+    from .gigabyte import GigabyteHelperClient
+
+    client = GigabyteHelperClient()
+    probe = await client.probe()
+    return await client.snapshot(
+        probe.board_fingerprint,
+        tuple(zone.id for zone in probe.zones),
+    )
+
+
+async def _gigabyte_test_all(restore_after: float) -> int:
+    from .gigabyte import GigabyteHelperClient
+
+    client = GigabyteHelperClient()
+    probe = await client.probe()
+    zones = tuple(zone.id for zone in probe.zones)
+    snapshot = await client.snapshot(probe.board_fingerprint, zones)
+    try:
+        await client.blackout(probe.board_fingerprint, snapshot)
+        print(f"Gigabyte lighting is off; restoring in {restore_after:g} seconds")
+        await asyncio.sleep(restore_after)
+    finally:
+        await client.restore(probe.board_fingerprint, snapshot)
+    print("Gigabyte lighting restored")
     return 0
 
 
@@ -80,6 +131,17 @@ def main() -> int:
             )
         )
         return 0
+    if args.gigabyte_snapshot:
+        print(
+            json.dumps(
+                asyncio.run(_gigabyte_snapshot()),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    if args.gigabyte_test_all:
+        return asyncio.run(_gigabyte_test_all(args.restore_after))
     if args.install_autostart or args.remove_autostart:
         from .autostart import AutostartManager, WindowsRunRegistry
 

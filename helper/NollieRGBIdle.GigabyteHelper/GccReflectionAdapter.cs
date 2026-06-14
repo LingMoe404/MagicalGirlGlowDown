@@ -38,9 +38,7 @@ public sealed class GccReflectionAdapter : IGigabyteAdapter
     {
         var board = ReadBoardIdentity();
         var fingerprint = Fingerprint(board.Manufacturer, board.Product, board.Version);
-        var assemblyVersions = AssemblyNames.ToDictionary(
-            name => name,
-            name => ReadFileVersion(resolver.ResolvePath(name)));
+        var assemblyVersions = ReadAssemblyVersions();
         var zones = ReadProfileZones(board.Product);
         return Task.FromResult(JsonSerializer.SerializeToElement(new
         {
@@ -57,6 +55,20 @@ public sealed class GccReflectionAdapter : IGigabyteAdapter
                     + "vendor zone identities are confirmed.",
                 },
         }));
+    }
+
+    public GccBoardDescription Describe()
+    {
+        var board = ReadBoardIdentity();
+        var zones = JsonSerializer.SerializeToElement(ReadProfileZones(board.Product));
+        return new GccBoardDescription(
+            Fingerprint(board.Manufacturer, board.Product, board.Version),
+            ReadAssemblyVersions(),
+            zones.EnumerateArray()
+                .Select(zone => zone.GetProperty("id").GetString())
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id!)
+                .ToArray());
     }
 
     public Task<JsonElement> SnapshotAsync(JsonElement? payload) =>
@@ -153,6 +165,11 @@ public sealed class GccReflectionAdapter : IGigabyteAdapter
         }
         return FileVersionInfo.GetVersionInfo(path).FileVersion ?? "unknown";
     }
+
+    private IReadOnlyDictionary<string, string> ReadAssemblyVersions() =>
+        AssemblyNames.ToDictionary(
+            name => name,
+            name => ReadFileVersion(resolver.ResolvePath(name)));
 
     private static AdapterException WritesUnavailable() =>
         new(

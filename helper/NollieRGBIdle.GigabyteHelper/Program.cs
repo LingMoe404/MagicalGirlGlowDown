@@ -32,7 +32,12 @@ static IGigabyteAdapter CreateVendorAdapter()
 {
     try
     {
-        return new GccReflectionAdapter(GccInstallation.Locate());
+        var installation = GccInstallation.Locate();
+        var discovery = new GccReflectionAdapter(installation);
+        return new GccLightingAdapter(
+            discovery.Describe(),
+            () => new GccReflectionLightingSession(installation),
+            discovery: discovery);
     }
     catch (AdapterException)
     {

@@ -50,3 +50,33 @@ Hardware writes must not be enabled until:
 
 The integration never calls BIOS-save, calibration-write, or firmware-update
 methods.
+
+The temporary blackout path is intentionally limited to three vendor runtime
+operations:
+
+- `GetLedSetting()` captures the complete vendor JSON state;
+- `SetAllLedColor(0)` turns every validated motherboard/header zone black;
+- `sInfo = <captured JSON>` followed by `Apply(3)` restores that exact state.
+
+`SaveSetting`, BIOS power-state operations, calibration methods, and profile
+writes are not on the helper whitelist.
+
+## Staged Runtime Test
+
+Close GCC before either command. A snapshot does not change the lights:
+
+```powershell
+uv run nollie-rgb-idle --gigabyte-snapshot --debug
+```
+
+The following command turns off all seven validated zones and restores them
+after five seconds, including effect, colors, speed, brightness, and vendor
+extension fields:
+
+```powershell
+uv run nollie-rgb-idle --gigabyte-test-all --restore-after 5 --debug
+```
+
+The restore delay must be from 1 through 30 seconds. Restoration runs from a
+`finally` block, including cancellation paths. The helper refuses snapshot,
+blackout, and restore operations while `GCC.exe` is running.

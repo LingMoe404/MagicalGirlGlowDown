@@ -14,3 +14,18 @@ def test_cli_parses_gigabyte_probe() -> None:
     args = build_parser().parse_args(["--gigabyte-probe"])
 
     assert args.gigabyte_probe is True
+
+
+def test_cli_parses_gigabyte_snapshot() -> None:
+    args = build_parser().parse_args(["--gigabyte-snapshot"])
+
+    assert args.gigabyte_snapshot is True
+
+
+def test_cli_parses_gigabyte_test_all_with_restore_delay() -> None:
+    args = build_parser().parse_args(
+        ["--gigabyte-test-all", "--restore-after", "5"]
+    )
+
+    assert args.gigabyte_test_all is True
+    assert args.restore_after == 5
