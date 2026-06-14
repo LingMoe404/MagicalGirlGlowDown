@@ -6,7 +6,11 @@ public static class VendorMethodPolicy
         new(StringComparer.Ordinal)
         {
             "Apply",
+            "GetLedId",
+            "GetLedLayoutInfo",
             "GetLedSetting",
+            "GetMbId",
+            "GetMcuType",
             "SetAllLedColor",
         };
 

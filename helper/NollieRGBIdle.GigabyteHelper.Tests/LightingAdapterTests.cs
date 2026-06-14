@@ -135,6 +135,8 @@ public sealed class LightingAdapterTests
 
         public string GetLedSetting() => state;
 
+        public string GetDiagnostics() => "fake diagnostics";
+
         public int SetAllLedColor(uint color)
         {
             LastColor = color;

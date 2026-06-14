@@ -10,6 +10,7 @@ public sealed record GccBoardDescription(
 public interface IGccLightingSession
 {
     string GetLedSetting();
+    string GetDiagnostics();
     int SetAllLedColor(uint color);
     int ApplyState(string vendorState);
 }
@@ -37,7 +38,8 @@ public sealed class GccLightingAdapter(
         EnsureGccIsClosed();
         var requestedZones = ValidateRequest(payload);
         RequireCompleteZoneSet(requestedZones);
-        using var document = JsonDocument.Parse(createSession().GetLedSetting());
+        var session = createSession();
+        using var document = JsonDocument.Parse(session.GetLedSetting());
         if (document.RootElement.ValueKind != JsonValueKind.Array)
         {
             throw new AdapterException(
@@ -48,7 +50,9 @@ public sealed class GccLightingAdapter(
         {
             throw new AdapterException(
                 "invalid_vendor_state",
-                "GCC lighting state count does not match the validated zone count.");
+                $"GCC returned {document.RootElement.GetArrayLength()} lighting states "
+                + $"for {board.ZoneIds.Count} validated zones. "
+                + session.GetDiagnostics());
         }
         return Task.FromResult(JsonSerializer.SerializeToElement(new
         {

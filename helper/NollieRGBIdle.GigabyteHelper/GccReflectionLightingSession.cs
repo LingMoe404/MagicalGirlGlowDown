@@ -9,7 +9,9 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
 
     public GccReflectionLightingSession(GccInstallation installation)
     {
-        var resolver = new GccAssemblyResolver(installation);
+        Environment.CurrentDirectory = installation.Root;
+        var stagingDirectory = CreateStagingDirectory(installation);
+        var resolver = new GccAssemblyResolver(installation, stagingDirectory);
         AppDomain.CurrentDomain.AssemblyResolve += (_, args) =>
         {
             var simpleName = new AssemblyName(args.Name).Name;
@@ -28,9 +30,73 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
                 "GCC motherboard lighting could not be initialized.");
     }
 
+    private static string CreateStagingDirectory(GccInstallation installation)
+    {
+        var localAppData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData);
+        var root = Path.Combine(
+            localAppData,
+            "NollieRGBIdle",
+            "GigabyteHelperStage");
+        Directory.CreateDirectory(root);
+        foreach (var existing in Directory.EnumerateDirectories(root))
+        {
+            try
+            {
+                Directory.Delete(existing, recursive: true);
+            }
+            catch (IOException)
+            {
+                // A previous helper may still be shutting down.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Leave an inaccessible stale directory untouched.
+            }
+        }
+
+        var stagingDirectory = Path.Combine(root, Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(stagingDirectory);
+        foreach (var source in Directory.EnumerateFiles(
+                     installation.MotherboardLibraryDirectory))
+        {
+            File.Copy(
+                source,
+                Path.Combine(stagingDirectory, Path.GetFileName(source)));
+        }
+        File.Copy(
+            installation.ConfigurationPath,
+            Path.Combine(stagingDirectory, "rgbcfg.xml"));
+        if (File.Exists(installation.SmbControlPath))
+        {
+            File.Copy(
+                installation.SmbControlPath,
+                Path.Combine(stagingDirectory, "SMBCtrl.dll"));
+        }
+        if (File.Exists(installation.UserDataPath))
+        {
+            File.Copy(
+                installation.UserDataPath,
+                Path.Combine(stagingDirectory, "usdata2.xml"));
+        }
+        return stagingDirectory;
+    }
+
     public string GetLedSetting() =>
         (string?)InvokeAllowed("GetLedSetting")
         ?? throw new AdapterException("invalid_vendor_state", "GCC returned no lighting state.");
+
+    public string GetDiagnostics()
+    {
+        var deviceName = vendorType.GetProperty(
+            "DeviceName",
+            BindingFlags.Instance | BindingFlags.Public)?.GetValue(vendor);
+        return $"DeviceName={deviceName ?? "null"}, "
+            + $"MbId={InvokeAllowed("GetMbId")}, "
+            + $"LedId={InvokeAllowed("GetLedId")}, "
+            + $"McuType={InvokeAllowed("GetMcuType")}, "
+            + $"Layout={InvokeAllowed("GetLedLayoutInfo")}";
+    }
 
     public int SetAllLedColor(uint color) => Convert.ToInt32(
         InvokeAllowed("SetAllLedColor", color));

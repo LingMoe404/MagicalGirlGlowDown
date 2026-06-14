@@ -11,6 +11,10 @@ public sealed record GccInstallation(string Root)
 
     public string ProfilePath => Path.Combine(Root, "RGBMotherboard", "Profile-0.xml");
 
+    public string UserDataPath => Path.Combine(Root, "usdata2.xml");
+
+    public string SmbControlPath => Path.Combine(Root, "SMBCtrl.dll");
+
     public static GccInstallation Locate()
     {
         var configured = Environment.GetEnvironmentVariable("NOLLIERGBIDLE_GCC_ROOT");

@@ -69,6 +69,10 @@ Close GCC before either command. A snapshot does not change the lights:
 uv run nollie-rgb-idle --gigabyte-snapshot --debug
 ```
 
+The snapshot and write commands request administrator permission because GCC's
+native motherboard controller reports no MB/LED identity to a standard user
+process. The read-only `--gigabyte-probe` command remains non-elevated.
+
 The following command turns off all seven validated zones and restores them
 after five seconds, including effect, colors, speed, brightness, and vendor
 extension fields:

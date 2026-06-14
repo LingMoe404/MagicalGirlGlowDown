@@ -59,6 +59,11 @@ Start the tray application:
 uv run nollie-rgb-idle
 ```
 
+Windows requests administrator permission once at startup when the tray or a
+Gigabyte write command is used. The elevated tray keeps that permission for
+background idle control, so standby transitions do not show repeated UAC
+prompts. Read-only probing, simulation, and autostart setup do not elevate.
+
 Read-only Gigabyte discovery:
 
 ```powershell

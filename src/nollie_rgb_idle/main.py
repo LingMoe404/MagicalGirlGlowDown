@@ -105,6 +105,20 @@ def main() -> int:
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
+    from .privilege import is_elevated, relaunch_elevated, requires_elevation
+
+    if requires_elevation(
+        simulate=args.simulate,
+        gigabyte_probe=args.gigabyte_probe,
+        gigabyte_snapshot=args.gigabyte_snapshot,
+        gigabyte_test_all=args.gigabyte_test_all,
+        install_autostart=args.install_autostart,
+        remove_autostart=args.remove_autostart,
+    ) and not is_elevated():
+        if relaunch_elevated(sys.argv[1:]):
+            return 0
+        print("NollieRGBIdle needs administrator permission for Gigabyte lighting.")
+        return 1
     if args.simulate:
         return asyncio.run(_simulate(args))
     if args.gigabyte_probe:
