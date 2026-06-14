@@ -2,49 +2,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from dataclasses import dataclass, field
-from typing import Protocol
 
-from .domain import ControllerId, ServiceState
-from .lighting import LightingError, LightingSnapshot, LightingTarget, TargetIdentity
+from .domain import ServiceState
+from .lighting import BlackoutEligibility, LightingError, LightingSnapshot, LightingTarget
+from .protocol import NollieControllerProtocol, NollieLightingTarget
 from .storage import StateStore
 
 log = logging.getLogger(__name__)
-
-
-class BrightnessController(Protocol):
-    identity: ControllerId
-
-    async def read_standby_brightness(self) -> tuple[int, ...]: ...
-
-    async def write_standby_brightness(self, values: tuple[int, ...]) -> None: ...
-
-
-@dataclass(slots=True)
-class _BrightnessTarget:
-    controller: BrightnessController
-    identity: TargetIdentity = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.identity = TargetIdentity("nollie", self.controller.identity.key)
-
-    async def snapshot(self) -> dict[str, object]:
-        values = await self.controller.read_standby_brightness()
-        return {"canvases": list(values)}
-
-    async def blackout(self, snapshot: dict[str, object]) -> None:
-        canvases = self._canvases(snapshot)
-        await self.controller.write_standby_brightness(tuple(0 for _ in canvases))
-
-    async def restore(self, snapshot: dict[str, object]) -> None:
-        await self.controller.write_standby_brightness(self._canvases(snapshot))
-
-    @staticmethod
-    def _canvases(snapshot: dict[str, object]) -> tuple[int, ...]:
-        canvases = snapshot.get("canvases")
-        if not isinstance(canvases, list) or any(type(value) is not int for value in canvases):
-            raise LightingError("invalid Nollie brightness snapshot")
-        return tuple(canvases)
 
 
 class LightingService:
@@ -59,7 +23,7 @@ class LightingService:
 
     async def dim(
         self,
-        targets: Iterable[LightingTarget | BrightnessController],
+        targets: Iterable[LightingTarget | NollieControllerProtocol],
     ) -> None:
         self.state = ServiceState.DIMMING
         dimmed_any = False
@@ -72,6 +36,11 @@ class LightingService:
                     state = existing.state
                 else:
                     state = await target.snapshot()
+                    if (
+                        isinstance(target, BlackoutEligibility)
+                        and not target.should_blackout(state)
+                    ):
+                        continue
                     self.snapshots[key] = LightingSnapshot(
                         target.identity,
                         state,
@@ -93,7 +62,7 @@ class LightingService:
 
     async def restore(
         self,
-        targets: Iterable[LightingTarget | BrightnessController],
+        targets: Iterable[LightingTarget | NollieControllerProtocol],
     ) -> None:
         self.state = ServiceState.RESTORING
         lighting_targets = (self._lighting_target(item) for item in targets)
@@ -126,11 +95,11 @@ class LightingService:
 
     @staticmethod
     def _lighting_target(
-        item: LightingTarget | BrightnessController,
+        item: LightingTarget | NollieControllerProtocol,
     ) -> LightingTarget:
         if all(hasattr(item, name) for name in ("snapshot", "blackout", "restore")):
             return item  # type: ignore[return-value]
-        return _BrightnessTarget(item)  # type: ignore[arg-type]
+        return NollieLightingTarget(item)  # type: ignore[arg-type]
 
 
 BrightnessService = LightingService

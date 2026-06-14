@@ -62,6 +62,20 @@ def test_loads_version_one_brightness_snapshot_and_next_save_emits_v2(
     }
 
 
+def test_version_two_key_identity_mismatch_is_quarantined(tmp_path: Path) -> None:
+    store = StateStore(tmp_path)
+    store.state_path.write_text(
+        '{"version":2,"snapshots":{"nollie:Nollie16:WRONG":{'
+        '"backend":"nollie","device":"Nollie16:A",'
+        '"state":{"canvases":[30]},"pending_restore":true}}}',
+        encoding="utf-8",
+    )
+
+    assert store.load_snapshots() == {}
+    assert not store.state_path.exists()
+    assert list(tmp_path.glob("state.corrupt-*.json"))
+
+
 def test_corrupt_state_is_quarantined(tmp_path: Path) -> None:
     store = StateStore(tmp_path)
     store.state_path.parent.mkdir(parents=True, exist_ok=True)

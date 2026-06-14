@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 
 class LightingError(Exception):
@@ -53,3 +53,8 @@ class LightingTarget(Protocol):
     async def blackout(self, snapshot: dict[str, object]) -> None: ...
 
     async def restore(self, snapshot: dict[str, object]) -> None: ...
+
+
+@runtime_checkable
+class BlackoutEligibility(Protocol):
+    def should_blackout(self, snapshot: dict[str, object]) -> bool: ...

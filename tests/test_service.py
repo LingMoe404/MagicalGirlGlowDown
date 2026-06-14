@@ -3,7 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 
 from nollie_rgb_idle.domain import ControllerId, ServiceState
-from nollie_rgb_idle.lighting import LightingError, LightingSnapshot
+from nollie_rgb_idle.lighting import LightingError, LightingSnapshot, TargetIdentity
+from nollie_rgb_idle.protocol import NollieLightingTarget
 from nollie_rgb_idle.service import BrightnessService, LightingService
 from nollie_rgb_idle.storage import StateStore
 from tests.fakes import FakeController, FakeLightingTarget
@@ -193,6 +194,39 @@ async def test_restore_save_failure_retains_pending_and_continues(tmp_path) -> N
     assert service.state is ServiceState.DIMMED
 
 
+async def test_malformed_nollie_restore_does_not_stop_later_target(tmp_path) -> None:
+    store = StateStore(tmp_path)
+    snapshots = {
+        "nollie:Nollie16:A": LightingSnapshot(
+            TargetIdentity("nollie", "Nollie16:A"),
+            {"canvases": ["bad"]},
+            True,
+        ),
+        "gigabyte:board": LightingSnapshot(
+            TargetIdentity("gigabyte", "board"),
+            {"zones": [{"brightness": 80}]},
+            True,
+        ),
+    }
+    store.save_snapshots(snapshots)
+    service = LightingService(store)
+    nollie = NollieLightingTarget(
+        FakeController(ControllerId("Nollie16", "A"), [0])
+    )
+    gigabyte = FakeLightingTarget(
+        "gigabyte",
+        "board",
+        {"zones": [{"brightness": 0}]},
+    )
+
+    await service.restore([nollie, gigabyte])
+
+    assert service.snapshots["nollie:Nollie16:A"].pending_restore is True
+    assert service.snapshots["gigabyte:board"].pending_restore is False
+    assert gigabyte.state == {"zones": [{"brightness": 80}]}
+    assert service.state is ServiceState.DIMMED
+
+
 async def test_pause_sets_paused_state(tmp_path) -> None:
     service = LightingService(StateStore(tmp_path))
 
@@ -211,3 +245,25 @@ async def test_brightness_service_keeps_untouched_tray_controllers_compatible(
     await service.restore([controller])
 
     assert controller.brightness == [30]
+
+
+async def test_all_zero_nollie_target_is_skipped(tmp_path) -> None:
+    controller = FakeController(ControllerId("Nollie16", "A"), [0, 0])
+    service = LightingService(StateStore(tmp_path))
+
+    await service.dim([NollieLightingTarget(controller)])
+
+    assert controller.brightness == [0, 0]
+    assert service.snapshots == {}
+    assert service.state is ServiceState.ACTIVE
+
+
+async def test_empty_legacy_nollie_controller_is_skipped(tmp_path) -> None:
+    controller = FakeController(ControllerId("Nollie16", "A"), [])
+    service = BrightnessService(StateStore(tmp_path))
+
+    await service.dim([controller])
+
+    assert controller.brightness == []
+    assert service.snapshots == {}
+    assert service.state is ServiceState.ACTIVE

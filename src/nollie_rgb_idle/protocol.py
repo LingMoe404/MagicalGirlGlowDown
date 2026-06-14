@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Protocol
 
 from .domain import ControllerId
-from .lighting import TargetIdentity
+from .lighting import LightingError, TargetIdentity
 
 HID_SET_EFFECT = 250
 HID_GET_EFFECT = 249
@@ -148,8 +148,16 @@ class NollieController:
         self._transport.close()
 
 
+class NollieControllerProtocol(Protocol):
+    identity: ControllerId
+
+    async def read_standby_brightness(self) -> tuple[int, ...]: ...
+
+    async def write_standby_brightness(self, values: tuple[int, ...]) -> None: ...
+
+
 class NollieLightingTarget:
-    def __init__(self, controller: NollieController) -> None:
+    def __init__(self, controller: NollieControllerProtocol) -> None:
         self.controller = controller
         self.identity = TargetIdentity("nollie", controller.identity.key)
 
@@ -164,11 +172,21 @@ class NollieLightingTarget:
     async def restore(self, snapshot: dict[str, object]) -> None:
         await self.controller.write_standby_brightness(self._canvases(snapshot))
 
+    def should_blackout(self, snapshot: dict[str, object]) -> bool:
+        canvases = self._canvases(snapshot, allow_empty=True)
+        return bool(canvases) and any(canvases)
+
     @staticmethod
-    def _canvases(snapshot: dict[str, object]) -> tuple[int, ...]:
+    def _canvases(
+        snapshot: dict[str, object],
+        *,
+        allow_empty: bool = False,
+    ) -> tuple[int, ...]:
         canvases = snapshot.get("canvases")
-        if not isinstance(canvases, list) or not canvases:
-            raise ValueError("Nollie snapshot must contain a non-empty canvas list")
+        if not isinstance(canvases, list) or (not allow_empty and not canvases):
+            raise LightingError("Nollie snapshot must contain a non-empty canvas list")
         if any(type(value) is not int or not 0 <= value <= 100 for value in canvases):
-            raise ValueError("Nollie canvas brightness must be an integer between 0 and 100")
+            raise LightingError(
+                "Nollie canvas brightness must be an integer between 0 and 100"
+            )
         return tuple(canvases)

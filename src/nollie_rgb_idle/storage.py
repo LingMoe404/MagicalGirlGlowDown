@@ -29,10 +29,7 @@ class StateStore:
             if version == 1:
                 return self._migrate_v1_snapshots(snapshots)
             if version == 2:
-                return {
-                    key: LightingSnapshot.from_dict(item)
-                    for key, item in snapshots.items()
-                }
+                return self._load_v2_snapshots(snapshots)
             raise ValueError(f"unsupported state version: {version}")
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -59,6 +56,18 @@ class StateStore:
                 pending_restore=legacy.pending_restore,
             )
         return migrated
+
+    @staticmethod
+    def _load_v2_snapshots(
+        snapshots: dict[str, Any],
+    ) -> dict[str, LightingSnapshot]:
+        loaded: dict[str, LightingSnapshot] = {}
+        for key, item in snapshots.items():
+            snapshot = LightingSnapshot.from_dict(item)
+            if key != snapshot.identity.key:
+                raise ValueError("snapshot key does not match target identity")
+            loaded[key] = snapshot
+        return loaded
 
     def load_settings(self) -> AppSettings:
         if not self.settings_path.exists():

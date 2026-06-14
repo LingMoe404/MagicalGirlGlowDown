@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from nollie_rgb_idle.domain import ControllerId
-from nollie_rgb_idle.lighting import LightingSnapshot, TargetIdentity
+from nollie_rgb_idle.lighting import LightingError, LightingSnapshot, TargetIdentity
 from nollie_rgb_idle.protocol import NollieLightingTarget
 
 from .fakes import FakeController, FakeLightingTarget
@@ -61,5 +61,5 @@ async def test_nollie_target_rejects_malformed_canvas_state(canvases: list[objec
     controller = FakeController(ControllerId("Nollie16", "ABC"), [30])
     target = NollieLightingTarget(controller)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(LightingError):
         await target.restore({"canvases": canvases})
