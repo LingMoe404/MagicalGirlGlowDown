@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from nollie_rgb_idle.domain import ControllerId
 from nollie_rgb_idle.lighting import LightingSnapshot, TargetIdentity
 from nollie_rgb_idle.protocol import NollieLightingTarget
@@ -42,3 +44,22 @@ async def test_nollie_target_uses_standby_brightness_state() -> None:
 
     await target.restore(state)
     assert controller.brightness == [30, 80]
+
+
+@pytest.mark.parametrize(
+    "canvases",
+    [
+        [],
+        [True],
+        [30.5],
+        ["30"],
+        [-1],
+        [101],
+    ],
+)
+async def test_nollie_target_rejects_malformed_canvas_state(canvases: list[object]) -> None:
+    controller = FakeController(ControllerId("Nollie16", "ABC"), [30])
+    target = NollieLightingTarget(controller)
+
+    with pytest.raises(ValueError):
+        await target.restore({"canvases": canvases})

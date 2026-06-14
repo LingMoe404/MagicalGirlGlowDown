@@ -167,6 +167,8 @@ class NollieLightingTarget:
     @staticmethod
     def _canvases(snapshot: dict[str, object]) -> tuple[int, ...]:
         canvases = snapshot.get("canvases")
-        if not isinstance(canvases, list):
-            raise ValueError("Nollie snapshot must contain a canvas list")
-        return tuple(int(value) for value in canvases)
+        if not isinstance(canvases, list) or not canvases:
+            raise ValueError("Nollie snapshot must contain a non-empty canvas list")
+        if any(type(value) is not int or not 0 <= value <= 100 for value in canvases):
+            raise ValueError("Nollie canvas brightness must be an integer between 0 and 100")
+        return tuple(canvases)
