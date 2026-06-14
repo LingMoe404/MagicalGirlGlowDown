@@ -76,6 +76,7 @@ jobs:
           uv run --locked --with nuitka python -m nuitka launcher.py
           --standalone
           --windows-console-mode=disable
+          --windows-uac-admin
           --enable-plugin=pyside6
           --assume-yes-for-downloads
           --windows-icon-from-ico=src/magical_girl_glow_down/assets/logo.ico
