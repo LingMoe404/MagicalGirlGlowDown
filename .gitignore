@@ -11,3 +11,5 @@ dist/
 *.egg-info/
 **/bin/
 **/obj/
+src/nollie_rgb_idle/gigabyte_helper/*
+!src/nollie_rgb_idle/gigabyte_helper/*.exe

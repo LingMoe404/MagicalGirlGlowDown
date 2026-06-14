@@ -1,14 +1,23 @@
 # NollieRGBIdle
 
-Windows tray companion for Nollie RGB controllers.
+Windows tray companion for Nollie RGB controllers and validated Gigabyte
+motherboard lighting.
 
 NollieRGBIdle watches global keyboard, mouse, XInput, WinMM, and Raw Input game
 controller activity. After 30 seconds without input it saves every standby
 canvas brightness and sets those brightness values to zero. Input restores the
 saved values.
 
+On the validated `X870E AORUS MASTER X3D ICE`, it also controls the motherboard
+IO shield/PCH LEDs, four 5V ARGB headers, and one 12V RGB header through the
+locally installed Gigabyte Control Center libraries. GCC must remain installed.
+No Gigabyte DLL is bundled.
+
 The original `NollieRGB.exe` does not need to remain open. If it is opened,
 NollieRGBIdle restores lighting, releases its HID handles, and pauses writes.
+If `GCC.exe` opens, only the Gigabyte backend yields ownership; Nollie
+controllers continue operating. Two seconds after GCC closes, the motherboard
+is probed again and GCC's latest effect becomes the next restorable state.
 
 ## Current Status
 
@@ -29,6 +38,13 @@ uv sync --all-groups
 uv run pytest
 uv run ruff check .
 uv run mypy src
+dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -c Release -v minimal
+```
+
+Build the isolated Gigabyte helper:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-helper.ps1
 ```
 
 Run the deterministic two-controller simulator:
@@ -41,6 +57,20 @@ Start the tray application:
 
 ```powershell
 uv run nollie-rgb-idle
+```
+
+Read-only Gigabyte discovery:
+
+```powershell
+uv run nollie-rgb-idle --gigabyte-probe --debug
+```
+
+With GCC closed, capture the full vendor state or run a five-second automatic
+blackout/restore test:
+
+```powershell
+uv run nollie-rgb-idle --gigabyte-snapshot --debug
+uv run nollie-rgb-idle --gigabyte-test-all --restore-after 5 --debug
 ```
 
 ## Autostart
@@ -83,4 +113,15 @@ When a controller is available:
 9. Open `NollieRGB.exe` and confirm NollieRGBIdle restores, releases, and pauses.
 10. Force-close NollieRGBIdle while dimmed, restart it, and confirm recovery.
 
+For Gigabyte validation, close GCC before starting. Confirm the two onboard
+zones and any attached 5V/12V strips turn off after the timeout and return to
+their exact effect after keyboard, mouse, or game-controller input. Open GCC
+while idle and verify it takes ownership without stopping Nollie control.
+
+The Gigabyte helper only whitelists temporary runtime state calls. It never
+calls GCC profile saves, calibration writes, BIOS persistence, firmware update,
+or a low-level SMBus fallback.
+
 Protocol evidence is documented in [docs/protocol-notes.md](docs/protocol-notes.md).
+Gigabyte validation details are in
+[docs/gigabyte-validation.md](docs/gigabyte-validation.md).
