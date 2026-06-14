@@ -45,6 +45,7 @@ class LightingSnapshot:
         )
 
 
+@runtime_checkable
 class LightingTarget(Protocol):
     identity: TargetIdentity
 

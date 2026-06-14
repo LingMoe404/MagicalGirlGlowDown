@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .domain import AppSettings, BrightnessSnapshot
-from .lighting import LightingSnapshot, TargetIdentity
+from .lighting import LightingError, LightingSnapshot, TargetIdentity
 
 
 class StateStore:
@@ -29,13 +29,13 @@ class StateStore:
             if version == 1:
                 return self._migrate_v1_snapshots(snapshots)
             if version == 2:
-                return self._load_v2_snapshots(snapshots)
+                loaded, contains_invalid = self._load_v2_snapshots(snapshots)
+                if contains_invalid:
+                    self._quarantine_state()
+                return loaded
             raise ValueError(f"unsupported state version: {version}")
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
-            stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-            quarantine = self.data_dir / f"state.corrupt-{stamp}.json"
-            with suppress(OSError):
-                os.replace(self.state_path, quarantine)
+            self._quarantine_state()
             return {}
 
     def save_snapshots(self, snapshots: dict[str, LightingSnapshot]) -> None:
@@ -60,14 +60,26 @@ class StateStore:
     @staticmethod
     def _load_v2_snapshots(
         snapshots: dict[str, Any],
-    ) -> dict[str, LightingSnapshot]:
+    ) -> tuple[dict[str, LightingSnapshot], bool]:
         loaded: dict[str, LightingSnapshot] = {}
+        contains_invalid = False
         for key, item in snapshots.items():
-            snapshot = LightingSnapshot.from_dict(item)
-            if key != snapshot.identity.key:
-                raise ValueError("snapshot key does not match target identity")
-            loaded[key] = snapshot
-        return loaded
+            try:
+                if not isinstance(item, dict):
+                    raise ValueError("snapshot entry must be a dictionary")
+                snapshot = LightingSnapshot.from_dict(item)
+                if key != snapshot.identity.key:
+                    raise ValueError("snapshot key does not match target identity")
+                loaded[key] = snapshot
+            except (KeyError, TypeError, ValueError):
+                contains_invalid = True
+        return loaded, contains_invalid
+
+    def _quarantine_state(self) -> None:
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        quarantine = self.data_dir / f"state.corrupt-{stamp}.json"
+        with suppress(OSError):
+            os.replace(self.state_path, quarantine)
 
     def load_settings(self) -> AppSettings:
         if not self.settings_path.exists():
@@ -98,10 +110,11 @@ class StateStore:
         )
 
     def _atomic_write(self, path: Path, payload: object) -> None:
+        try:
+            serialized = json.dumps(payload, ensure_ascii=True, indent=2) + "\n"
+        except (TypeError, ValueError) as exc:
+            raise LightingError("state is not JSON serializable") from exc
         self.data_dir.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(".tmp")
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=True, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        temporary.write_text(serialized, encoding="utf-8")
         os.replace(temporary, path)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from copy import deepcopy
 
 from .domain import ServiceState
 from .lighting import BlackoutEligibility, LightingError, LightingSnapshot, LightingTarget
@@ -33,9 +34,9 @@ class LightingService:
             existing = self.snapshots.get(key)
             try:
                 if existing is not None and existing.pending_restore:
-                    state = existing.state
+                    state = deepcopy(existing.state)
                 else:
-                    state = await target.snapshot()
+                    state = deepcopy(await target.snapshot())
                     if (
                         isinstance(target, BlackoutEligibility)
                         and not target.should_blackout(state)
@@ -43,7 +44,7 @@ class LightingService:
                         continue
                     self.snapshots[key] = LightingSnapshot(
                         target.identity,
-                        state,
+                        deepcopy(state),
                         pending_restore=True,
                     )
                     try:
@@ -54,7 +55,7 @@ class LightingService:
                         else:
                             self.snapshots[key] = existing
                         raise
-                await target.blackout(state)
+                await target.blackout(deepcopy(state))
                 dimmed_any = True
             except (LightingError, OSError) as exc:
                 log.warning("Could not dim %s: %s", key, exc)
@@ -71,10 +72,10 @@ class LightingService:
             if not snapshot.pending_restore or key not in by_key:
                 continue
             try:
-                await by_key[key].restore(snapshot.state)
+                await by_key[key].restore(deepcopy(snapshot.state))
                 self.snapshots[key] = LightingSnapshot(
                     snapshot.identity,
-                    snapshot.state,
+                    deepcopy(snapshot.state),
                     pending_restore=False,
                 )
                 try:
@@ -97,9 +98,11 @@ class LightingService:
     def _lighting_target(
         item: LightingTarget | NollieControllerProtocol,
     ) -> LightingTarget:
-        if all(hasattr(item, name) for name in ("snapshot", "blackout", "restore")):
-            return item  # type: ignore[return-value]
-        return NollieLightingTarget(item)  # type: ignore[arg-type]
+        if isinstance(item, LightingTarget):
+            return item
+        if isinstance(item, NollieControllerProtocol):
+            return NollieLightingTarget(item)
+        raise TypeError("unsupported lighting target")
 
 
 BrightnessService = LightingService

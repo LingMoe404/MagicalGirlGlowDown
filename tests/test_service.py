@@ -97,6 +97,22 @@ class FailOnceStore(StateStore):
         super().save_snapshots(snapshots)
 
 
+class NonJsonLightingTarget(FakeLightingTarget):
+    async def snapshot(self) -> dict[str, object]:
+        return {"invalid": object()}
+
+
+class MutatingBlackoutTarget(FakeLightingTarget):
+    async def blackout(self, snapshot: dict[str, object]) -> None:
+        self.blackout_calls += 1
+        zones = snapshot["zones"]
+        assert isinstance(zones, list)
+        zone = zones[0]
+        assert isinstance(zone, dict)
+        zone["brightness"] = 0
+        self.state = deepcopy(snapshot)
+
+
 async def test_dims_and_restores_mixed_targets(tmp_path) -> None:
     targets = [
         FakeLightingTarget("nollie", "A", {"canvases": [30]}),
@@ -119,6 +135,34 @@ async def test_dims_and_restores_mixed_targets(tmp_path) -> None:
     zones = targets[1].state["zones"]
     assert isinstance(zones, list)
     assert zones[0]["brightness"] == 80
+    assert service.state is ServiceState.ACTIVE
+
+
+async def test_non_json_snapshot_does_not_stop_later_target(tmp_path) -> None:
+    bad = NonJsonLightingTarget("gigabyte", "bad", {})
+    good = FakeLightingTarget("nollie", "A", {"canvases": [30]})
+    service = LightingService(StateStore(tmp_path))
+
+    await service.dim([bad, good])
+
+    assert bad.blackout_calls == 0
+    assert "gigabyte:bad" not in service.snapshots
+    assert good.state == {"canvases": [0]}
+    assert service.state is ServiceState.DIMMED
+
+
+async def test_blackout_cannot_mutate_recovery_snapshot(tmp_path) -> None:
+    target = MutatingBlackoutTarget(
+        "gigabyte",
+        "board",
+        {"zones": [{"id": "logo", "brightness": 80}]},
+    )
+    service = LightingService(StateStore(tmp_path))
+
+    await service.dim([target])
+    await service.restore([target])
+
+    assert target.state == {"zones": [{"id": "logo", "brightness": 80}]}
     assert service.state is ServiceState.ACTIVE
 
 

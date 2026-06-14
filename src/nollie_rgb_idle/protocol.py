@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, replace
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from .domain import ControllerId
 from .lighting import LightingError, TargetIdentity
@@ -148,6 +148,7 @@ class NollieController:
         self._transport.close()
 
 
+@runtime_checkable
 class NollieControllerProtocol(Protocol):
     identity: ControllerId
 

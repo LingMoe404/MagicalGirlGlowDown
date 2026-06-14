@@ -76,6 +76,50 @@ def test_version_two_key_identity_mismatch_is_quarantined(tmp_path: Path) -> Non
     assert list(tmp_path.glob("state.corrupt-*.json"))
 
 
+def test_malformed_v2_entry_is_quarantined_without_losing_valid_entries(
+    tmp_path: Path,
+) -> None:
+    store = StateStore(tmp_path)
+    store.state_path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "snapshots": {
+                    "nollie:Nollie16:A": {
+                        "backend": "nollie",
+                        "device": "Nollie16:A",
+                        "state": {"canvases": [30]},
+                        "pending_restore": True,
+                    },
+                    "gigabyte:broken": {
+                        "backend": "gigabyte",
+                        "device": "different",
+                        "state": {"zones": []},
+                        "pending_restore": True,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    loaded = store.load_snapshots()
+
+    assert loaded == {
+        "nollie:Nollie16:A": LightingSnapshot(
+            TargetIdentity("nollie", "Nollie16:A"),
+            {"canvases": [30]},
+            True,
+        )
+    }
+    assert not store.state_path.exists()
+    assert list(tmp_path.glob("state.corrupt-*.json"))
+
+    store.save_snapshots(loaded)
+    payload = json.loads(store.state_path.read_text(encoding="utf-8"))
+    assert list(payload["snapshots"]) == ["nollie:Nollie16:A"]
+
+
 def test_corrupt_state_is_quarantined(tmp_path: Path) -> None:
     store = StateStore(tmp_path)
     store.state_path.parent.mkdir(parents=True, exist_ok=True)
