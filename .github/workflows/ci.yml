@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - run: uv sync --all-groups --frozen
+      - run: uv run pytest -v
+      - run: uv run ruff check .
+      - run: uv run mypy src
+      - run: uv run nollie-rgb-idle --simulate --cycles 1 --idle-seconds 0.1
