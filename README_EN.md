@@ -42,8 +42,9 @@
     effect becomes the new restoration state.
 * **Crash recovery**: Saves restoration data during blackout so the next launch
   can attempt recovery after an unexpected exit.
-* **Start with Windows**: Can register a per-user Windows startup entry without
-  administrator permission.
+* **Start with Windows**: Uses a highest-privilege Windows scheduled task. It
+  requests administrator permission once when enabled, then starts at sign-in
+  without another UAC prompt.
 
 ## How It Works
 
@@ -111,10 +112,25 @@ require separate validation.
 * **Gigabyte control**: A supported Gigabyte motherboard with Gigabyte Control
   Center installed
 * **Permissions**:
-  * Nollie control, simulation mode, and startup configuration usually do not
-    require administrator permission.
+  * Nollie control and simulation mode usually do not require administrator
+    permission.
   * Gigabyte lighting writes require administrator permission. The tray app
     requests elevation once during startup.
+  * Enabling or removing startup requires administrator permission to manage
+    the highest-privilege scheduled task.
+
+## Downloads
+
+Every non-documentation code push produces:
+
+* `MagicalGirlGlowDown-v<version>-Portable.7z`: Extract and run directly.
+* `MagicalGirlGlowDown-v<version>-Setup.exe`: Requests administrator permission
+  once during installation and creates a sign-in task that does not prompt for
+  UAC on every startup.
+
+Open the repository's
+[Actions page](https://github.com/LingMoe404/MagicalGirlGlowDown/actions/workflows/autobuild.yml),
+select the latest successful `AutoBuild`, and download the required artifact.
 
 ## Running from Source
 
@@ -146,9 +162,6 @@ dependencies.
    uv run magical-girl-glow-down
    ```
 
-Portable archives and an installer are not currently distributed. Run the
-project from source for now.
-
 ## Common Commands
 
 ### Simulation
@@ -169,10 +182,10 @@ uv run magical-girl-glow-down --install-autostart
 uv run magical-girl-glow-down --remove-autostart
 ```
 
-The startup entry is stored at:
+Startup uses Windows Task Scheduler with this task name:
 
 ```text
-HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+MagicalGirlGlowDown
 ```
 
 ### Gigabyte Hardware Diagnostics

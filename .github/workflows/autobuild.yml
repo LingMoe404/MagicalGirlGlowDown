@@ -1,0 +1,198 @@
+name: AutoBuild
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+      - "LICENSE"
+      - "docs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup uv and Python 3.12.10
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12.10"
+          enable-cache: true
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache Nuitka compiler cache
+        uses: actions/cache@v5
+        with:
+          path: ~\AppData\Local\Nuitka\Nuitka\Cache
+          key: ${{ runner.os }}-nuitka-${{ hashFiles('src/**/*.py', 'launcher.py', 'uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nuitka-
+
+      - name: Sync project dependencies
+        run: uv sync --locked --no-dev
+
+      - name: Resolve application version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = uv run --locked python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) {
+            throw "Unable to read the application version from pyproject.toml."
+          }
+
+          $version = $version.Trim()
+          "MGGD_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Building MagicalGirlGlowDown $version"
+
+      - name: Build self-contained Gigabyte helper
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          powershell -ExecutionPolicy Bypass -File .\scripts\build-helper.ps1 -SelfContained
+
+          $helper = "src/magical_girl_glow_down/gigabyte_helper/MagicalGirlGlowDown.GigabyteHelper.exe"
+          if (!(Test-Path $helper)) {
+            throw "Gigabyte helper was not generated: $helper"
+          }
+
+      - name: Build standalone application
+        run: >
+          uv run --locked --with nuitka python -m nuitka launcher.py
+          --standalone
+          --windows-console-mode=disable
+          --enable-plugin=pyside6
+          --assume-yes-for-downloads
+          --windows-icon-from-ico=src/magical_girl_glow_down/assets/logo.ico
+          --include-data-file=src/magical_girl_glow_down/assets/logo.ico=magical_girl_glow_down/assets/logo.ico
+          --output-dir=build/nuitka
+          --output-filename=MagicalGirlGlowDown.exe
+
+      - name: Prepare shared distribution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $dist = "build/nuitka/launcher.dist"
+          $stage = "build/package/MagicalGirlGlowDown"
+          if (!(Test-Path $dist)) {
+            throw "Nuitka standalone directory was not generated: $dist"
+          }
+
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Get-ChildItem -LiteralPath $stage -Force -ErrorAction SilentlyContinue |
+            Remove-Item -Recurse -Force -ErrorAction Stop
+          Copy-Item -Path "$dist\*" -Destination $stage -Recurse -Force
+
+          $helperSource = "src/magical_girl_glow_down/gigabyte_helper/MagicalGirlGlowDown.GigabyteHelper.exe"
+          $helperDir = Join-Path $stage "magical_girl_glow_down\gigabyte_helper"
+          New-Item -ItemType Directory -Force -Path $helperDir | Out-Null
+          Copy-Item -LiteralPath $helperSource -Destination $helperDir -Force
+
+          $app = Join-Path $stage "MagicalGirlGlowDown.exe"
+          $helper = Join-Path $stage "magical_girl_glow_down\gigabyte_helper\MagicalGirlGlowDown.GigabyteHelper.exe"
+          if (!(Test-Path $app)) { throw "Staged application is missing: $app" }
+          if (!(Test-Path $helper)) { throw "Staged Gigabyte helper is missing: $helper" }
+
+      - name: Ensure packaging tools are available
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if (-not (Get-Command 7z -ErrorAction SilentlyContinue)) {
+            choco install 7zip -y --no-progress
+          }
+
+          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($iscc) {
+            $isccPath = $iscc.Source
+          } else {
+            choco install innosetup -y --no-progress
+            $isccPath = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+
+          if (!(Test-Path $isccPath)) {
+            throw "Inno Setup compiler was not found: $isccPath"
+          }
+          "ISCC_PATH=$isccPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build portable archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $stage = "build/package/MagicalGirlGlowDown"
+          $archiveName = "MagicalGirlGlowDown-v$($env:MGGD_VERSION)-Portable.7z"
+          $archive = Join-Path "build/package" $archiveName
+
+          Push-Location $stage
+          7z a -t7z "..\$archiveName" ".\*" -m0=lzma2 -mx=9 -mfb=273 -md=128m -ms=on -mmt=on
+          $exitCode = $LASTEXITCODE
+          Pop-Location
+
+          if ($exitCode -ne 0) { throw "7-Zip failed with exit code $exitCode." }
+          if (!(Test-Path $archive)) { throw "Portable archive was not generated: $archive" }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $sourceDir = (Resolve-Path "build/package/MagicalGirlGlowDown").Path
+          $outputDir = (Resolve-Path "build/package").Path
+          & "$env:ISCC_PATH" `
+            "/DMyAppVersion=$env:MGGD_VERSION" `
+            "/DSourceDir=$sourceDir" `
+            "/DOutputDir=$outputDir" `
+            "installer/MagicalGirlGlowDown.iss"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup failed with exit code $LASTEXITCODE."
+          }
+
+          $setup = Join-Path $outputDir "MagicalGirlGlowDown-v$($env:MGGD_VERSION)-Setup.exe"
+          if (!(Test-Path $setup)) { throw "Installer was not generated: $setup" }
+
+      - name: Show artifact information
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $artifacts = @(
+            "build/package/MagicalGirlGlowDown-v$($env:MGGD_VERSION)-Portable.7z",
+            "build/package/MagicalGirlGlowDown-v$($env:MGGD_VERSION)-Setup.exe"
+          )
+
+          foreach ($artifact in $artifacts) {
+            if (!(Test-Path $artifact)) { throw "Artifact is missing: $artifact" }
+            $sizeMB = [math]::Round((Get-Item $artifact).Length / 1MB, 2)
+            Write-Host "$artifact (${sizeMB} MB)"
+          }
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: MagicalGirlGlowDown-Portable
+          path: build/package/*-Portable.7z
+          if-no-files-found: error
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: MagicalGirlGlowDown-Installer
+          path: build/package/*-Setup.exe
+          if-no-files-found: error

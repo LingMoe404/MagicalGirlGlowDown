@@ -1,3 +1,7 @@
+param(
+    [switch]$SelfContained
+)
+
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -16,7 +20,8 @@ if (Test-Path -LiteralPath $output) {
 dotnet publish $project `
     -c Release `
     -r win-x64 `
-    --self-contained false `
+    --self-contained $SelfContained.IsPresent `
     -p:PublishSingleFile=true `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:DebugType=None `
     -o $output

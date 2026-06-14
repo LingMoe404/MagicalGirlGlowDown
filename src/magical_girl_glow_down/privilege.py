@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import ctypes
 import subprocess
-import sys
 from collections.abc import Sequence
 
-from .branding import MODULE_ENTRY
+from .runtime import runtime_command
 
 
 def requires_elevation(
@@ -17,7 +16,7 @@ def requires_elevation(
     gigabyte_snapshot: bool = False,
     gigabyte_test_all: bool = False,
 ) -> bool:
-    return not (simulate or gigabyte_probe or install_autostart or remove_autostart)
+    return install_autostart or remove_autostart or not (simulate or gigabyte_probe)
 
 
 def is_elevated() -> bool:
@@ -28,11 +27,12 @@ def is_elevated() -> bool:
 
 
 def relaunch_elevated(arguments: Sequence[str]) -> bool:
-    parameters = subprocess.list2cmdline(["-m", MODULE_ENTRY, *arguments])
+    executable, *argument_list = runtime_command(arguments)
+    parameters = subprocess.list2cmdline(argument_list)
     result = ctypes.windll.shell32.ShellExecuteW(
         None,
         "runas",
-        sys.executable,
+        executable,
         parameters,
         None,
         1,

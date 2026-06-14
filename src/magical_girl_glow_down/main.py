@@ -14,9 +14,9 @@ from .branding import (
     APP_NAME,
     CLI_NAME,
     DATA_DIR_NAME,
-    MODULE_ENTRY,
     set_windows_app_id,
 )
+from .runtime import runtime_command
 from .simulator import run_simulation
 
 
@@ -167,10 +167,10 @@ def main() -> int:
     if args.gigabyte_test_all:
         return asyncio.run(_gigabyte_test_all(args.restore_after))
     if args.install_autostart or args.remove_autostart:
-        from .autostart import AutostartManager, WindowsRunRegistry
+        from .autostart import AutostartManager, WindowsTaskScheduler
 
-        command = subprocess.list2cmdline([sys.executable, "-m", MODULE_ENTRY])
-        manager = AutostartManager(WindowsRunRegistry(), command)
+        command = subprocess.list2cmdline(runtime_command())
+        manager = AutostartManager(WindowsTaskScheduler(), command)
         if args.install_autostart:
             manager.enable()
             print(f"{APP_NAME} autostart enabled")

@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import subprocess
-import sys
 import threading
 import time
 from ctypes import wintypes
@@ -21,13 +20,14 @@ from PySide6.QtWidgets import (
 )
 
 from .app_guard import is_gcc_running, is_original_app_running, running_process_names
-from .autostart import AutostartManager, WindowsRunRegistry
-from .branding import APP_DISPLAY_NAME, APP_NAME, MODULE_ENTRY, icon_path
+from .autostart import AutostartManager, WindowsTaskScheduler
+from .branding import APP_DISPLAY_NAME, APP_NAME, icon_path
 from .discovery import discover_controllers
 from .domain import AppSettings
 from .gigabyte import GigabyteError, GigabyteHelperClient, GigabyteLightingTarget
 from .lighting import LightingTarget
 from .protocol import NollieController, NollieLightingTarget
+from .runtime import runtime_command
 from .service import LightingService
 from .storage import StateStore
 from .windows_input import (
@@ -237,8 +237,8 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
     autostart_action = QAction("Start with Windows", menu)
     autostart_action.setCheckable(True)
     exit_action = QAction("Exit", menu)
-    command = subprocess.list2cmdline([sys.executable, "-m", MODULE_ENTRY])
-    autostart = AutostartManager(WindowsRunRegistry(), command)
+    command = subprocess.list2cmdline(runtime_command())
+    autostart = AutostartManager(WindowsTaskScheduler(), command)
     autostart_action.setChecked(autostart.enabled())
     menu.addAction(status_action)
     menu.addSeparator()

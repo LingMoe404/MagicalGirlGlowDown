@@ -3,23 +3,23 @@ from __future__ import annotations
 from magical_girl_glow_down.autostart import AutostartManager
 
 
-class FakeRegistry:
+class FakeTaskScheduler:
     def __init__(self) -> None:
-        self.values: dict[str, str] = {}
+        self.command: str | None = None
 
-    def set(self, name: str, value: str) -> None:
-        self.values[name] = value
+    def create(self, command: str) -> None:
+        self.command = command
 
-    def delete(self, name: str) -> None:
-        self.values.pop(name, None)
+    def delete(self) -> None:
+        self.command = None
 
-    def get(self, name: str) -> str | None:
-        return self.values.get(name)
+    def exists(self) -> bool:
+        return self.command is not None
 
 
 def test_autostart_is_reversible() -> None:
-    registry = FakeRegistry()
-    manager = AutostartManager(registry, "uv run magical-girl-glow-down")
+    scheduler = FakeTaskScheduler()
+    manager = AutostartManager(scheduler, "uv run magical-girl-glow-down")
     manager.enable()
     assert manager.enabled()
     manager.disable()
