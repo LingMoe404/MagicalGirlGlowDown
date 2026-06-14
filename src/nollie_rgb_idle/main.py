@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import subprocess
@@ -20,6 +21,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--install-autostart", action="store_true")
     parser.add_argument("--remove-autostart", action="store_true")
+    parser.add_argument(
+        "--gigabyte-probe",
+        action="store_true",
+        help="read GCC motherboard and zone metadata without changing lighting",
+    )
     return parser
 
 
@@ -50,6 +56,30 @@ def main() -> int:
     )
     if args.simulate:
         return asyncio.run(_simulate(args))
+    if args.gigabyte_probe:
+        from .gigabyte import GigabyteHelperClient
+
+        probe = asyncio.run(GigabyteHelperClient().probe())
+        print(
+            json.dumps(
+                {
+                    "board_fingerprint": probe.board_fingerprint,
+                    "board": probe.board,
+                    "assembly_versions": probe.assembly_versions,
+                    "zones": [
+                        {
+                            "id": zone.id,
+                            "category": zone.category,
+                            "name": zone.name,
+                        }
+                        for zone in probe.zones
+                    ],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
     if args.install_autostart or args.remove_autostart:
         from .autostart import AutostartManager, WindowsRunRegistry
 

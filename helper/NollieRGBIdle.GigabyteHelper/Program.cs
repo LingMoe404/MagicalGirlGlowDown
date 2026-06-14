@@ -8,7 +8,7 @@ var jsonOptions = new JsonSerializerOptions
 };
 IGigabyteAdapter adapter = args.Contains("--fake", StringComparer.OrdinalIgnoreCase)
     ? new FakeGigabyteAdapter()
-    : new UnavailableGigabyteAdapter();
+    : CreateVendorAdapter();
 var server = new HelperServer(adapter);
 
 while (await Console.In.ReadLineAsync() is { } line)
@@ -26,4 +26,16 @@ while (await Console.In.ReadLineAsync() is { } line)
     }
 
     Console.WriteLine(JsonSerializer.Serialize(response, jsonOptions));
+}
+
+static IGigabyteAdapter CreateVendorAdapter()
+{
+    try
+    {
+        return new GccReflectionAdapter(GccInstallation.Locate());
+    }
+    catch (AdapterException)
+    {
+        return new UnavailableGigabyteAdapter();
+    }
 }

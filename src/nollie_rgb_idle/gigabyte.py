@@ -31,6 +31,8 @@ class GigabyteZone:
 class GigabyteProbe:
     board_fingerprint: str
     zones: tuple[GigabyteZone, ...]
+    board: dict[str, object] | None = None
+    assembly_versions: dict[str, str] | None = None
 
 
 def find_helper_command() -> tuple[str, ...]:
@@ -82,7 +84,18 @@ class GigabyteHelperClient:
             if not isinstance(name, str):
                 raise GigabyteError("helper returned an invalid zone name")
             zones.append(GigabyteZone(zone_id, category, name))
-        return GigabyteProbe(board, tuple(zones))
+        raw_board = result.get("board")
+        board_details = raw_board if isinstance(raw_board, dict) else None
+        raw_versions = result.get("assemblyVersions")
+        versions = (
+            {
+                str(key): str(value)
+                for key, value in raw_versions.items()
+            }
+            if isinstance(raw_versions, dict)
+            else None
+        )
+        return GigabyteProbe(board, tuple(zones), board_details, versions)
 
     async def snapshot(
         self,
