@@ -1,9 +1,9 @@
 [project]
-name = "nollie-rgb-idle"
+name = "magical-girl-glow-down"
 version = "0.1.0"
-description = "Idle dimming companion for Nollie RGB controllers"
+description = "Windows idle lighting manager for Nollie and Gigabyte RGB hardware"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12.10,<3.13"
 dependencies = [
   "hidapi>=0.14.0.post4",
   "psutil>=6.1",
@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-nollie-rgb-idle = "nollie_rgb_idle.main:main"
+magical-girl-glow-down = "magical_girl_glow_down.main:main"
 
 [dependency-groups]
 dev = [
@@ -27,8 +27,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/nollie_rgb_idle"]
-artifacts = ["src/nollie_rgb_idle/gigabyte_helper/*.exe"]
+packages = ["src/magical_girl_glow_down"]
+artifacts = ["src/magical_girl_glow_down/gigabyte_helper/*.exe"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -36,15 +36,15 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
-packages = ["nollie_rgb_idle"]
+packages = ["magical_girl_glow_down"]
 
 [[tool.mypy.overrides]]
 module = ["hid"]

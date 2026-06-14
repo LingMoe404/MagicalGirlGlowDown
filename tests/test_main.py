@@ -1,13 +1,14 @@
-from nollie_rgb_idle.main import build_parser
+from pathlib import Path
+
+from magical_girl_glow_down.main import app_data_dir, build_parser
 
 
 def test_cli_parses_simulation_options() -> None:
-    args = build_parser().parse_args(
-        ["--simulate", "--cycles", "2", "--idle-seconds", "0.1"]
-    )
+    args = build_parser().parse_args(["--simulate", "--cycles", "2", "--idle-seconds", "0.1"])
     assert args.simulate is True
     assert args.cycles == 2
     assert args.idle_seconds == 0.1
+    assert build_parser().prog == "magical-girl-glow-down"
 
 
 def test_cli_parses_gigabyte_probe() -> None:
@@ -23,9 +24,23 @@ def test_cli_parses_gigabyte_snapshot() -> None:
 
 
 def test_cli_parses_gigabyte_test_all_with_restore_delay() -> None:
-    args = build_parser().parse_args(
-        ["--gigabyte-test-all", "--restore-after", "5"]
-    )
+    args = build_parser().parse_args(["--gigabyte-test-all", "--restore-after", "5"])
 
     assert args.gigabyte_test_all is True
     assert args.restore_after == 5
+
+
+def test_app_data_dir_migrates_legacy_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    legacy = tmp_path / "NollieRGBIdle"
+    legacy.mkdir()
+    (legacy / "settings.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+
+    result = app_data_dir()
+
+    assert result == tmp_path / "MagicalGirlGlowDown"
+    assert (result / "settings.json").read_text(encoding="utf-8") == "{}"
+    assert not legacy.exists()

@@ -1,8 +1,8 @@
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$project = Join-Path $repoRoot "helper\NollieRGBIdle.GigabyteHelper"
-$output = Join-Path $repoRoot "src\nollie_rgb_idle\gigabyte_helper"
+$project = Join-Path $repoRoot "helper\MagicalGirlGlowDown.GigabyteHelper"
+$output = Join-Path $repoRoot "src\magical_girl_glow_down\gigabyte_helper"
 
 if (Test-Path -LiteralPath $output) {
     $resolvedOutput = (Resolve-Path -LiteralPath $output).Path

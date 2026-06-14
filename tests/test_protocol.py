@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from nollie_rgb_idle.discovery import normalize_hid_device
-from nollie_rgb_idle.protocol import (
+from magical_girl_glow_down.discovery import normalize_hid_device
+from magical_girl_glow_down.protocol import (
     HID_EFFECT_CH_PARAM,
     HID_GET_EFFECT,
     HID_SET_EFFECT,

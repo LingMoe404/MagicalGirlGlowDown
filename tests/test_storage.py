@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from nollie_rgb_idle.domain import AppSettings
-from nollie_rgb_idle.lighting import LightingSnapshot, TargetIdentity
-from nollie_rgb_idle.storage import StateStore
+from magical_girl_glow_down.domain import AppSettings
+from magical_girl_glow_down.lighting import LightingSnapshot, TargetIdentity
+from magical_girl_glow_down.storage import StateStore
 
 
 def test_store_round_trips_version_two_opaque_snapshots(tmp_path: Path) -> None:

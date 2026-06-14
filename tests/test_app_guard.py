@@ -1,4 +1,4 @@
-from nollie_rgb_idle.app_guard import is_gcc_running, is_original_app_running
+from magical_girl_glow_down.app_guard import is_gcc_running, is_original_app_running
 
 
 def test_process_guard_is_case_insensitive() -> None:

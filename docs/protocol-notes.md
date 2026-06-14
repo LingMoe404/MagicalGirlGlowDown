@@ -16,6 +16,6 @@ The archive contains `app.core_driver.n_dev_config` and
 - Default read timeout is 20 ms with two retries and 5 ms retry delay.
 - Unknown VID/PID/interface triplets are not opened.
 
-The device table in `src/nollie_rgb_idle/discovery.py` includes only current
+The device table in `src/magical_girl_glow_down/discovery.py` includes only current
 application-mode devices from the recovered catalog. Bootloaders and legacy
 devices are intentionally excluded from writes.

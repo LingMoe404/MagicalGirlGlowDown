@@ -1,4 +1,4 @@
-from nollie_rgb_idle.privilege import requires_elevation
+from magical_girl_glow_down.privilege import requires_elevation
 
 
 def test_tray_and_gigabyte_write_commands_require_elevation() -> None:

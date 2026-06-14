@@ -11,5 +11,5 @@ dist/
 *.egg-info/
 **/bin/
 **/obj/
-src/nollie_rgb_idle/gigabyte_helper/*
-!src/nollie_rgb_idle/gigabyte_helper/*.exe
+src/magical_girl_glow_down/gigabyte_helper/*
+!src/magical_girl_glow_down/gigabyte_helper/*.exe

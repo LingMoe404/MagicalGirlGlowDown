@@ -5,7 +5,7 @@
 Close GCC, then run:
 
 ```powershell
-uv run nollie-rgb-idle --gigabyte-probe --debug
+uv run magical-girl-glow-down --gigabyte-probe --debug
 ```
 
 This command reads:
@@ -66,7 +66,7 @@ writes are not on the helper whitelist.
 Close GCC before either command. A snapshot does not change the lights:
 
 ```powershell
-uv run nollie-rgb-idle --gigabyte-snapshot --debug
+uv run magical-girl-glow-down --gigabyte-snapshot --debug
 ```
 
 The snapshot and write commands request administrator permission because GCC's
@@ -78,7 +78,7 @@ after five seconds, including effect, colors, speed, brightness, and vendor
 extension fields:
 
 ```powershell
-uv run nollie-rgb-idle --gigabyte-test-all --restore-after 5 --debug
+uv run magical-girl-glow-down --gigabyte-test-all --restore-after 5 --debug
 ```
 
 The restore delay must be from 1 through 30 seconds. Restoration runs from a

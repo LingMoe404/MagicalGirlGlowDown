@@ -2,7 +2,7 @@
 
 ## Objective
 
-Extend NollieRGBIdle so the existing 30-second idle policy also controls the
+Extend MagicalGirlGlowDown so the existing 30-second idle policy also controls the
 lighting exposed by Gigabyte Control Center (GCC) on the current Gigabyte
 motherboard.
 
@@ -13,7 +13,7 @@ The integration covers:
   zones;
 - 12V analog RGB headers when GCC exposes them as distinct controllable zones.
 
-Before blackout, NollieRGBIdle captures each supported zone's complete current
+Before blackout, MagicalGirlGlowDown captures each supported zone's complete current
 state. Keyboard, mouse, or game-controller input restores that state. Unknown
 zones and hardware that cannot be identified safely are left untouched.
 
@@ -97,7 +97,7 @@ as exclusive owners of Gigabyte lighting.
 
 When GCC starts:
 
-1. Restore any Gigabyte snapshot that NollieRGBIdle currently has applied.
+1. Restore any Gigabyte snapshot that MagicalGirlGlowDown currently has applied.
 2. Stop the Gigabyte helper and release vendor resources.
 3. Pause only the Gigabyte backend.
 4. Continue normal Nollie controller handling unless `NollieRGB.exe` is also
@@ -151,7 +151,7 @@ Exit, pause, logoff, and shutdown request restoration.
 ## Persistence
 
 Gigabyte snapshots are stored separately from Nollie brightness snapshots under
-`%LOCALAPPDATA%\NollieRGBIdle`.
+`%LOCALAPPDATA%\MagicalGirlGlowDown`.
 
 A snapshot contains:
 
@@ -230,8 +230,8 @@ order:
    lighting is available.
 6. Black out all supported zones and restore them on keyboard, mouse, and
    game-controller input.
-7. Open GCC while NollieRGBIdle is active and confirm restoration and pause.
-8. Change an effect in GCC, close GCC, and confirm NollieRGBIdle adopts the new
+7. Open GCC while MagicalGirlGlowDown is active and confirm restoration and pause.
+8. Change an effect in GCC, close GCC, and confirm MagicalGirlGlowDown adopts the new
    state rather than restoring stale values.
 9. Test restart recovery and helper-failure isolation.
 

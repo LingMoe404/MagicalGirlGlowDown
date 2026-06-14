@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from nollie_rgb_idle.domain import ControllerId, ServiceState
-from nollie_rgb_idle.lighting import LightingError, LightingSnapshot, TargetIdentity
-from nollie_rgb_idle.protocol import NollieLightingTarget
-from nollie_rgb_idle.service import BrightnessService, LightingService
-from nollie_rgb_idle.storage import StateStore
+from magical_girl_glow_down.domain import ControllerId, ServiceState
+from magical_girl_glow_down.lighting import LightingError, LightingSnapshot, TargetIdentity
+from magical_girl_glow_down.protocol import NollieLightingTarget
+from magical_girl_glow_down.service import BrightnessService, LightingService
+from magical_girl_glow_down.storage import StateStore
 from tests.fakes import FakeController, FakeLightingTarget
 
 
@@ -280,9 +280,7 @@ async def test_malformed_nollie_restore_does_not_stop_later_target(tmp_path) -> 
     }
     store.save_snapshots(snapshots)
     service = LightingService(store)
-    nollie = NollieLightingTarget(
-        FakeController(ControllerId("Nollie16", "A"), [0])
-    )
+    nollie = NollieLightingTarget(FakeController(ControllerId("Nollie16", "A"), [0]))
     gigabyte = FakeLightingTarget(
         "gigabyte",
         "board",
@@ -298,9 +296,7 @@ async def test_malformed_nollie_restore_does_not_stop_later_target(tmp_path) -> 
 
 
 async def test_value_error_during_nollie_dim_is_translated_and_isolated(tmp_path) -> None:
-    bad = NollieLightingTarget(
-        ValueErrorController("Nollie16", "A", [30], fail_read=True)
-    )
+    bad = NollieLightingTarget(ValueErrorController("Nollie16", "A", [30], fail_read=True))
     good_controller = ValueErrorController("Nollie8", "B", [80])
     good = NollieLightingTarget(good_controller)
     service = LightingService(StateStore(tmp_path))
@@ -329,9 +325,7 @@ async def test_value_error_during_nollie_restore_is_translated_and_isolated(
     }
     store.save_snapshots(snapshots)
     service = LightingService(store)
-    bad = NollieLightingTarget(
-        ValueErrorController("Nollie16", "A", [30], fail_write=True)
-    )
+    bad = NollieLightingTarget(ValueErrorController("Nollie16", "A", [30], fail_write=True))
     good_controller = ValueErrorController("Nollie8", "B", [0])
     good = NollieLightingTarget(good_controller)
 

@@ -1,4 +1,4 @@
-from nollie_rgb_idle.windows_input import state_has_activity
+from magical_girl_glow_down.windows_input import state_has_activity
 
 
 def test_controller_buttons_and_large_axis_changes_count_as_activity() -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from nollie_rgb_idle.domain import AppSettings, BrightnessSnapshot, ControllerId
+from magical_girl_glow_down.domain import AppSettings, BrightnessSnapshot, ControllerId
 
 
 def test_settings_reject_non_positive_timeout() -> None:

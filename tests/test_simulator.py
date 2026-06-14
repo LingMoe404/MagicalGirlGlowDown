@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nollie_rgb_idle.simulator import run_simulation
+from magical_girl_glow_down.simulator import run_simulation
 
 
 async def test_simulator_dims_and_restores_multiple_controllers(tmp_path) -> None:

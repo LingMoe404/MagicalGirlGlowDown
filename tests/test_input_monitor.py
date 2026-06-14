@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nollie_rgb_idle.input_monitor import ActivityTracker, AxisFilter
+from magical_girl_glow_down.input_monitor import ActivityTracker, AxisFilter
 
 
 def test_tracker_transitions_after_timeout() -> None:

@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from nollie_rgb_idle.gigabyte import (
+from magical_girl_glow_down.gigabyte import (
     GigabyteError,
     GigabyteHelperClient,
     GigabyteLightingTarget,
 )
-from nollie_rgb_idle.lighting import TargetIdentity
+from magical_girl_glow_down.lighting import TargetIdentity
 
 
 def _write_helper(path: Path, response: dict[str, object]) -> tuple[str, ...]:
@@ -104,7 +104,6 @@ async def test_lighting_target_forwards_snapshot_blackout_and_restore(
 
     assert target.identity == TargetIdentity("gigabyte", "board-A")
     operations = [
-        json.loads(line)["operation"]
-        for line in log_path.read_text(encoding="utf-8").splitlines()
+        json.loads(line)["operation"] for line in log_path.read_text(encoding="utf-8").splitlines()
     ]
     assert operations == ["snapshot", "blackout", "restore"]

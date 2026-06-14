@@ -1,7 +1,7 @@
-from nollie_rgb_idle.lighting import LightingSnapshot, TargetIdentity
-from nollie_rgb_idle.service import LightingService
-from nollie_rgb_idle.storage import StateStore
-from nollie_rgb_idle.worker import WorkerPolicy
+from magical_girl_glow_down.lighting import LightingSnapshot, TargetIdentity
+from magical_girl_glow_down.service import LightingService
+from magical_girl_glow_down.storage import StateStore
+from magical_girl_glow_down.worker import WorkerPolicy
 from tests.fakes import FakeLightingTarget
 
 

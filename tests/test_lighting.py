@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from nollie_rgb_idle.domain import ControllerId
-from nollie_rgb_idle.lighting import LightingError, LightingSnapshot, TargetIdentity
-from nollie_rgb_idle.protocol import NollieLightingTarget
+from magical_girl_glow_down.domain import ControllerId
+from magical_girl_glow_down.lighting import LightingError, LightingSnapshot, TargetIdentity
+from magical_girl_glow_down.protocol import NollieLightingTarget
 
 from .fakes import FakeController, FakeLightingTarget
 

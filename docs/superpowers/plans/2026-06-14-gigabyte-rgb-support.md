@@ -6,21 +6,21 @@
 
 **Architecture:** Generalize the Python brightness service into an opaque lighting-target service, then add a Python client for a source-built .NET helper. The helper loads GCC assemblies from their installed locations, performs read-only discovery first, and permits writes only for a validated motherboard fingerprint and explicit zone set; GCC process detection pauses this backend without pausing Nollie controllers.
 
-**Tech Stack:** Python 3.11, asyncio, pytest, PySide6, psutil, .NET 10 C#, System.Text.Json, reflection over locally installed GCC assemblies.
+**Tech Stack:** Python 3.12.10, asyncio, pytest, PySide6, psutil, .NET 10 C#, System.Text.Json, reflection over locally installed GCC assemblies.
 
 ---
 
 ## File Structure
 
-- `src/nollie_rgb_idle/lighting.py`: generic target identity, opaque snapshot, and target protocol.
-- `src/nollie_rgb_idle/service.py`: transactional dim/restore orchestration for all lighting targets.
-- `src/nollie_rgb_idle/storage.py`: version-2 mixed target snapshot persistence and version-1 migration.
-- `src/nollie_rgb_idle/gigabyte.py`: helper discovery, JSON client, Gigabyte target adapter, and error mapping.
-- `src/nollie_rgb_idle/app_guard.py`: independent NollieRGB and GCC process guards.
-- `src/nollie_rgb_idle/tray.py`: backend lifecycle, GCC pause behavior, and combined status.
-- `src/nollie_rgb_idle/main.py`: safe Gigabyte probe/snapshot CLI commands.
-- `helper/NollieRGBIdle.GigabyteHelper/`: isolated .NET console helper.
-- `helper/NollieRGBIdle.GigabyteHelper.Tests/`: fake-adapter unit tests with no hardware access.
+- `src/magical_girl_glow_down/lighting.py`: generic target identity, opaque snapshot, and target protocol.
+- `src/magical_girl_glow_down/service.py`: transactional dim/restore orchestration for all lighting targets.
+- `src/magical_girl_glow_down/storage.py`: version-2 mixed target snapshot persistence and version-1 migration.
+- `src/magical_girl_glow_down/gigabyte.py`: helper discovery, JSON client, Gigabyte target adapter, and error mapping.
+- `src/magical_girl_glow_down/app_guard.py`: independent NollieRGB and GCC process guards.
+- `src/magical_girl_glow_down/tray.py`: backend lifecycle, GCC pause behavior, and combined status.
+- `src/magical_girl_glow_down/main.py`: safe Gigabyte probe/snapshot CLI commands.
+- `helper/MagicalGirlGlowDown.GigabyteHelper/`: isolated .NET console helper.
+- `helper/MagicalGirlGlowDown.GigabyteHelper.Tests/`: fake-adapter unit tests with no hardware access.
 - `tests/test_lighting.py`: generic snapshot model tests.
 - `tests/test_service.py`: mixed-backend orchestration tests.
 - `tests/test_storage.py`: persistence migration and opaque state tests.
@@ -32,9 +32,9 @@
 ### Task 1: Introduce Generic Lighting Targets
 
 **Files:**
-- Create: `src/nollie_rgb_idle/lighting.py`
-- Modify: `src/nollie_rgb_idle/domain.py`
-- Modify: `src/nollie_rgb_idle/protocol.py`
+- Create: `src/magical_girl_glow_down/lighting.py`
+- Modify: `src/magical_girl_glow_down/domain.py`
+- Modify: `src/magical_girl_glow_down/protocol.py`
 - Modify: `tests/fakes.py`
 - Create: `tests/test_lighting.py`
 
@@ -106,18 +106,18 @@ Expected: all tests pass.
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add src/nollie_rgb_idle/lighting.py src/nollie_rgb_idle/domain.py src/nollie_rgb_idle/protocol.py tests/fakes.py tests/test_lighting.py
+git add src/magical_girl_glow_down/lighting.py src/magical_girl_glow_down/domain.py src/magical_girl_glow_down/protocol.py tests/fakes.py tests/test_lighting.py
 git commit -m "refactor: add generic lighting target contract"
 ```
 
 ### Task 2: Generalize Transactions and Persistence
 
 **Files:**
-- Modify: `src/nollie_rgb_idle/service.py`
-- Modify: `src/nollie_rgb_idle/storage.py`
+- Modify: `src/magical_girl_glow_down/service.py`
+- Modify: `src/magical_girl_glow_down/storage.py`
 - Modify: `tests/test_service.py`
 - Modify: `tests/test_storage.py`
-- Modify: `src/nollie_rgb_idle/simulator.py`
+- Modify: `src/magical_girl_glow_down/simulator.py`
 
 - [ ] **Step 1: Write failing mixed-target and migration tests**
 
@@ -186,20 +186,20 @@ Expected: all tests pass.
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add src/nollie_rgb_idle/service.py src/nollie_rgb_idle/storage.py src/nollie_rgb_idle/simulator.py tests/test_service.py tests/test_storage.py tests/test_simulator.py
+git add src/magical_girl_glow_down/service.py src/magical_girl_glow_down/storage.py src/magical_girl_glow_down/simulator.py tests/test_service.py tests/test_storage.py tests/test_simulator.py
 git commit -m "refactor: support opaque lighting snapshots"
 ```
 
 ### Task 3: Build the Versioned Helper Protocol
 
 **Files:**
-- Create: `helper/NollieRGBIdle.GigabyteHelper/NollieRGBIdle.GigabyteHelper.csproj`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/Program.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/Messages.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/IGigabyteAdapter.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/FakeGigabyteAdapter.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper.Tests/NollieRGBIdle.GigabyteHelper.Tests.csproj`
-- Create: `helper/NollieRGBIdle.GigabyteHelper.Tests/ProtocolTests.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/MagicalGirlGlowDown.GigabyteHelper.csproj`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/Program.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/Messages.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/IGigabyteAdapter.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/FakeGigabyteAdapter.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper.Tests/MagicalGirlGlowDown.GigabyteHelper.Tests.csproj`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper.Tests/ProtocolTests.cs`
 
 - [ ] **Step 1: Create failing protocol tests**
 
@@ -228,7 +228,7 @@ public async Task WriteRequiresMatchingBoardFingerprint()
 
 - [ ] **Step 2: Verify the tests fail**
 
-Run: `dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -v minimal`
+Run: `dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -v minimal`
 
 Expected: build fails because the helper protocol types do not exist.
 
@@ -246,7 +246,7 @@ the structured `vendor_adapter_unavailable` error from a temporary
 
 - [ ] **Step 4: Run helper tests**
 
-Run: `dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -v minimal`
+Run: `dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -v minimal`
 
 Expected: all tests pass.
 
@@ -260,7 +260,7 @@ git commit -m "feat: add Gigabyte helper protocol"
 ### Task 4: Add the Python Helper Client
 
 **Files:**
-- Create: `src/nollie_rgb_idle/gigabyte.py`
+- Create: `src/magical_girl_glow_down/gigabyte.py`
 - Create: `tests/test_gigabyte.py`
 - Modify: `pyproject.toml`
 
@@ -305,7 +305,7 @@ class GigabyteLightingTarget:
     async def restore(self, snapshot: dict[str, object]) -> None: ...
 ```
 
-Resolve the helper from `NOLLIERGBIDLE_GIGABYTE_HELPER`, a packaged helper
+Resolve the helper from `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER`, a packaged helper
 directory, or the local `dotnet run --project` path during development. Validate
 the response schema, request ID, board fingerprint, zone categories, and JSON
 shape. Kill timed-out helpers and include stderr in debug logs.
@@ -314,7 +314,7 @@ shape. Kill timed-out helpers and include stderr in debug logs.
 
 Run: `uv run pytest tests/test_gigabyte.py -v`
 
-Run: `uv run ruff check src/nollie_rgb_idle/gigabyte.py tests/test_gigabyte.py`
+Run: `uv run ruff check src/magical_girl_glow_down/gigabyte.py tests/test_gigabyte.py`
 
 Run: `uv run mypy src`
 
@@ -323,19 +323,19 @@ Expected: all commands succeed.
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add src/nollie_rgb_idle/gigabyte.py tests/test_gigabyte.py pyproject.toml
+git add src/magical_girl_glow_down/gigabyte.py tests/test_gigabyte.py pyproject.toml
 git commit -m "feat: add Gigabyte helper client"
 ```
 
 ### Task 5: Implement Read-Only GCC Discovery
 
 **Files:**
-- Create: `helper/NollieRGBIdle.GigabyteHelper/GccInstallation.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/GccAssemblyResolver.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/GccReflectionAdapter.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/ZoneClassifier.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper.Tests/ZoneClassifierTests.cs`
-- Modify: `src/nollie_rgb_idle/main.py`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/GccInstallation.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/GccAssemblyResolver.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/GccReflectionAdapter.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/ZoneClassifier.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper.Tests/ZoneClassifierTests.cs`
+- Modify: `src/magical_girl_glow_down/main.py`
 - Modify: `tests/test_main.py`
 - Create: `docs/gigabyte-validation.md`
 
@@ -361,7 +361,7 @@ def test_cli_parses_gigabyte_probe() -> None:
 
 - [ ] **Step 2: Verify tests fail**
 
-Run: `dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -v minimal`
+Run: `dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -v minimal`
 
 Run: `uv run pytest tests/test_main.py -v`
 
@@ -395,16 +395,16 @@ the tray. Document the exact command and state clearly that it performs no
 writes:
 
 ```powershell
-uv run nollie-rgb-idle --gigabyte-probe --debug
+uv run magical-girl-glow-down --gigabyte-probe --debug
 ```
 
 - [ ] **Step 4: Run all read-only checks**
 
-Run: `dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -v minimal`
+Run: `dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -v minimal`
 
 Run: `uv run pytest tests/test_main.py tests/test_gigabyte.py -v`
 
-Run: `uv run nollie-rgb-idle --gigabyte-probe --debug`
+Run: `uv run magical-girl-glow-down --gigabyte-probe --debug`
 
 Expected: tests pass; live command reports the current board fingerprint and
 zone list without changing any light.
@@ -418,18 +418,18 @@ Compare the live zone list with GCC. Confirm each `onboard`, `argb5v`, and
 - [ ] **Step 6: Commit**
 
 ```powershell
-git add helper src/nollie_rgb_idle/main.py tests/test_main.py docs/gigabyte-validation.md
+git add helper src/magical_girl_glow_down/main.py tests/test_main.py docs/gigabyte-validation.md
 git commit -m "feat: add read-only Gigabyte RGB discovery"
 ```
 
 ### Task 6: Implement Snapshot, Blackout, and Restore
 
 **Files:**
-- Create: `helper/NollieRGBIdle.GigabyteHelper/GccLightingAdapter.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper/VendorMethodPolicy.cs`
-- Create: `helper/NollieRGBIdle.GigabyteHelper.Tests/LightingAdapterTests.cs`
-- Modify: `helper/NollieRGBIdle.GigabyteHelper/Program.cs`
-- Modify: `src/nollie_rgb_idle/main.py`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/GccLightingAdapter.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper/VendorMethodPolicy.cs`
+- Create: `helper/MagicalGirlGlowDown.GigabyteHelper.Tests/LightingAdapterTests.cs`
+- Modify: `helper/MagicalGirlGlowDown.GigabyteHelper/Program.cs`
+- Modify: `src/magical_girl_glow_down/main.py`
 - Modify: `tests/test_main.py`
 - Modify: `docs/gigabyte-validation.md`
 
@@ -459,7 +459,7 @@ public void PersistentMethodsAreForbidden(string method)
 
 - [ ] **Step 2: Verify helper tests fail**
 
-Run: `dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -v minimal`
+Run: `dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -v minimal`
 
 Expected: failures because write support does not exist.
 
@@ -482,7 +482,7 @@ rejects restore delays below one second or above 30 seconds.
 
 - [ ] **Step 4: Run fake-adapter tests**
 
-Run: `dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -v minimal`
+Run: `dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -v minimal`
 
 Run: `uv run pytest tests/test_main.py tests/test_gigabyte.py -v`
 
@@ -493,13 +493,13 @@ Expected: all tests pass with no physical hardware access.
 Run snapshot only:
 
 ```powershell
-uv run nollie-rgb-idle --gigabyte-snapshot --debug
+uv run magical-girl-glow-down --gigabyte-snapshot --debug
 ```
 
 Then run one confirmed onboard zone with a five-second automatic restore:
 
 ```powershell
-uv run nollie-rgb-idle --gigabyte-test-zone "<confirmed-zone-id>" --restore-after 5
+uv run magical-girl-glow-down --gigabyte-test-zone "<confirmed-zone-id>" --restore-after 5
 ```
 
 Expected: the selected zone turns off and returns to its exact prior effect.
@@ -509,16 +509,16 @@ attached lighting. Never run an all-zone test before these checks pass.
 - [ ] **Step 6: Commit**
 
 ```powershell
-git add helper src/nollie_rgb_idle/main.py tests/test_main.py docs/gigabyte-validation.md
+git add helper src/magical_girl_glow_down/main.py tests/test_main.py docs/gigabyte-validation.md
 git commit -m "feat: control validated Gigabyte RGB zones"
 ```
 
 ### Task 7: Add GCC Coexistence and Tray Orchestration
 
 **Files:**
-- Modify: `src/nollie_rgb_idle/app_guard.py`
-- Modify: `src/nollie_rgb_idle/tray.py`
-- Create: `src/nollie_rgb_idle/worker.py`
+- Modify: `src/magical_girl_glow_down/app_guard.py`
+- Modify: `src/magical_girl_glow_down/tray.py`
+- Create: `src/magical_girl_glow_down/worker.py`
 - Modify: `tests/test_app_guard.py`
 - Create: `tests/test_tray_worker.py`
 
@@ -570,7 +570,7 @@ Expected: all tests pass.
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add src/nollie_rgb_idle/app_guard.py src/nollie_rgb_idle/tray.py src/nollie_rgb_idle/worker.py tests/test_app_guard.py tests/test_tray_worker.py
+git add src/magical_girl_glow_down/app_guard.py src/magical_girl_glow_down/tray.py src/magical_girl_glow_down/worker.py tests/test_app_guard.py tests/test_tray_worker.py
 git commit -m "feat: pause Gigabyte control while GCC is open"
 ```
 
@@ -587,9 +587,9 @@ git commit -m "feat: pause Gigabyte control while GCC is open"
 
 ```powershell
 $ErrorActionPreference = "Stop"
-dotnet publish helper/NollieRGBIdle.GigabyteHelper `
+dotnet publish helper/MagicalGirlGlowDown.GigabyteHelper `
   -c Release -r win-x64 --self-contained false `
-  -o src/nollie_rgb_idle/gigabyte_helper
+  -o src/magical_girl_glow_down/gigabyte_helper
 ```
 
 Exclude `bin/`, `obj/`, and copied GCC vendor assemblies. Include only our
@@ -615,7 +615,7 @@ uv sync --all-groups
 uv run pytest
 uv run ruff check .
 uv run mypy src
-dotnet test helper/NollieRGBIdle.GigabyteHelper.Tests -c Release -v minimal
+dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -c Release -v minimal
 ```
 
 Expected: every command exits successfully.
@@ -623,15 +623,15 @@ Expected: every command exits successfully.
 - [ ] **Step 4: Run live acceptance**
 
 1. Close GCC and NollieRGB.
-2. Run `uv run nollie-rgb-idle --gigabyte-probe --debug`.
-3. Start `uv run nollie-rgb-idle`.
+2. Run `uv run magical-girl-glow-down --gigabyte-probe --debug`.
+3. Start `uv run magical-girl-glow-down`.
 4. Wait 30 seconds and confirm Nollie plus all validated Gigabyte zones turn off.
 5. Test keyboard, mouse, and every connected game controller; verify exact
    restoration.
 6. Open GCC while dimmed; verify restoration and Gigabyte pause.
 7. Change a GCC effect, close GCC, wait for idle, and verify the new state is
    restored after input.
-8. Force-close NollieRGBIdle while dimmed, restart it, and verify pending
+8. Force-close MagicalGirlGlowDown while dimmed, restart it, and verify pending
    recovery.
 
 - [ ] **Step 5: Inspect repository contents**
