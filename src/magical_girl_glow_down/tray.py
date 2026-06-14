@@ -239,7 +239,6 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
     exit_action = QAction("Exit", menu)
     command = subprocess.list2cmdline([sys.executable, "-m", MODULE_ENTRY])
     autostart = AutostartManager(WindowsRunRegistry(), command)
-    autostart.migrate_legacy()
     autostart_action.setChecked(autostart.enabled())
     menu.addAction(status_action)
     menu.addSeparator()

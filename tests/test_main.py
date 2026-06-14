@@ -30,17 +30,12 @@ def test_cli_parses_gigabyte_test_all_with_restore_delay() -> None:
     assert args.restore_after == 5
 
 
-def test_app_data_dir_migrates_legacy_state(
+def test_app_data_dir_uses_final_product_directory(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    legacy = tmp_path / "NollieRGBIdle"
-    legacy.mkdir()
-    (legacy / "settings.json").write_text("{}", encoding="utf-8")
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
 
     result = app_data_dir()
 
     assert result == tmp_path / "MagicalGirlGlowDown"
-    assert (result / "settings.json").read_text(encoding="utf-8") == "{}"
-    assert not legacy.exists()

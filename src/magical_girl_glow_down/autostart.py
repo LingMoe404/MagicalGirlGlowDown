@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from .branding import AUTOSTART_VALUE_NAME, LEGACY_APP_NAME
+from .branding import AUTOSTART_VALUE_NAME
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 VALUE_NAME = AUTOSTART_VALUE_NAME
-LEGACY_VALUE_NAME = LEGACY_APP_NAME
 
 
 class Registry(Protocol):
@@ -55,18 +54,9 @@ class AutostartManager:
 
     def enable(self) -> None:
         self.registry.set(VALUE_NAME, self.command)
-        self.registry.delete(LEGACY_VALUE_NAME)
 
     def disable(self) -> None:
         self.registry.delete(VALUE_NAME)
-        self.registry.delete(LEGACY_VALUE_NAME)
 
     def enabled(self) -> bool:
         return self.registry.get(VALUE_NAME) == self.command
-
-    def migrate_legacy(self) -> None:
-        if self.registry.get(LEGACY_VALUE_NAME) is None:
-            return
-        if self.registry.get(VALUE_NAME) is None:
-            self.registry.set(VALUE_NAME, self.command)
-        self.registry.delete(LEGACY_VALUE_NAME)

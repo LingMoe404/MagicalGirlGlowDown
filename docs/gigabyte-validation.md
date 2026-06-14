@@ -1,86 +1,81 @@
-# Gigabyte RGB Hardware Validation
+# 技嘉 RGB 硬件验证
 
-## Read-Only Probe
+[English](gigabyte-validation_EN.md)
 
-Close GCC, then run:
+## 只读探测
+
+关闭 GCC 后运行：
 
 ```powershell
 uv run magical-girl-glow-down --gigabyte-probe --debug
 ```
 
-This command reads:
+此命令会读取：
 
-- Windows motherboard identity from the BIOS registry key;
-- GCC assembly file versions;
-- saved zone count from `RGBMotherboard/Profile-0.xml`.
+- Windows BIOS 注册表中的主板身份；
+- GCC 程序集文件版本；
+- `RGBMotherboard/Profile-0.xml` 中保存的灯光区域数量。
 
-It does not initialize the RGB controller and does not call any vendor lighting
-method. Unmapped profile positions are reported as `unsupported`; they remain
-write-disabled until their vendor identities are confirmed.
+它不会初始化 RGB 控制器，也不会调用任何厂商灯光方法。无法映射的配置
+位置会报告为 `unsupported`；在确认其厂商身份前，这些位置保持禁止写入。
 
-## Validated Board Layout
+## 已验证的主板布局
 
-For `X870E AORUS MASTER X3D ICE`, the installed GCC 26.03.25.01 UI geometry
-matches `rgbcfg.xml` layout `98`. The seven saved profile positions are:
+对于 `X870E AORUS MASTER X3D ICE`，本机 GCC 26.03.25.01 的界面几何布局
+与 `rgbcfg.xml` 中的布局 `98` 一致。保存的七个配置位置如下：
 
-| Profile index | GCC zone | Category |
+| 配置索引 | GCC 区域 | 分类 |
 | --- | --- | --- |
 | 0 | LED_C | 12V RGB |
 | 1 | ARGB_V2_1 | 5V ARGB |
 | 2 | ARGB_V2_2 | 5V ARGB |
 | 3 | ARGB_V2_3 | 5V ARGB |
 | 4 | ARGB_V2_4 | 5V ARGB |
-| 5 | IO Shield LED | Onboard |
-| 6 | PCH LED | Onboard |
+| 5 | IO Shield LED | 板载灯光 |
+| 6 | PCH LED | 板载灯光 |
 
-The mapping was checked against the board layout in Gigabyte's official manual
-and the coordinates rendered by the locally installed GCC. It is selected only
-for this exact product name; other boards remain unsupported.
+该映射已对照技嘉官方手册中的主板布局和本机 GCC 渲染的坐标进行检查。
+它只会用于完全一致的产品名称，其他主板仍保持不支持状态。
 
-## Write Safety
+## 写入安全
 
-Hardware writes must not be enabled until:
+只有满足以下全部条件时，才允许启用硬件写入：
 
-1. the board fingerprint matches the current machine;
-2. each writable zone has an explicit `onboard`, `argb5v`, or `rgb12v`
-   classification;
-3. snapshot readback has been validated;
-4. GCC is closed;
-5. automatic restoration is armed.
+1. 主板指纹与当前计算机匹配；
+2. 每个可写区域都具有明确的 `onboard`、`argb5v` 或 `rgb12v` 分类；
+3. 快照读取已经过验证；
+4. GCC 已关闭；
+5. 自动恢复机制已经就绪。
 
-The integration never calls BIOS-save, calibration-write, or firmware-update
-methods.
+此集成不会调用 BIOS 保存、校准写入或固件更新方法。
 
-The temporary blackout path is intentionally limited to three vendor runtime
-operations:
+临时熄灯流程被有意限制为三个厂商运行时操作：
 
-- `GetLedSetting()` captures the complete vendor JSON state;
-- `SetAllLedColor(0)` turns every validated motherboard/header zone black;
-- `sInfo = <captured JSON>` followed by `Apply(3)` restores that exact state.
+- `GetLedSetting()` 捕获完整的厂商 JSON 状态；
+- `SetAllLedColor(0)` 将所有已验证的主板和接口区域设为黑色；
+- 设置 `sInfo = <捕获的 JSON>` 后调用 `Apply(3)`，恢复完全一致的状态。
 
-`SaveSetting`, BIOS power-state operations, calibration methods, and profile
-writes are not on the helper whitelist.
+`SaveSetting`、BIOS 电源状态操作、校准方法和配置写入均不在辅助程序
+白名单中。
 
-## Staged Runtime Test
+## 分阶段运行测试
 
-Close GCC before either command. A snapshot does not change the lights:
+执行以下任一命令前请关闭 GCC。快照操作不会改变灯光：
 
 ```powershell
 uv run magical-girl-glow-down --gigabyte-snapshot --debug
 ```
 
-The snapshot and write commands request administrator permission because GCC's
-native motherboard controller reports no MB/LED identity to a standard user
-process. The read-only `--gigabyte-probe` command remains non-elevated.
+快照和写入命令会请求管理员权限，因为 GCC 的原生主板控制器不会向标准
+用户进程报告 MB/LED 身份。只读的 `--gigabyte-probe` 命令仍以非提权方式
+运行。
 
-The following command turns off all seven validated zones and restores them
-after five seconds, including effect, colors, speed, brightness, and vendor
-extension fields:
+以下命令会熄灭全部七个已验证区域，并在五秒后恢复其灯效、颜色、速度、
+亮度和厂商扩展字段：
 
 ```powershell
 uv run magical-girl-glow-down --gigabyte-test-all --restore-after 5 --debug
 ```
 
-The restore delay must be from 1 through 30 seconds. Restoration runs from a
-`finally` block, including cancellation paths. The helper refuses snapshot,
-blackout, and restore operations while `GCC.exe` is running.
+恢复延迟必须在 1 至 30 秒之间。恢复逻辑位于 `finally` 块中，取消流程也会
+执行恢复。当 `GCC.exe` 正在运行时，辅助程序会拒绝快照、熄灯和恢复操作。

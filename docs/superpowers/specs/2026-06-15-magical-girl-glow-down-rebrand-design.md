@@ -4,7 +4,7 @@
 
 Rename the complete application from its temporary Nollie-specific project
 identity to `MagicalGirlGlowDown`, while preserving Nollie and Gigabyte hardware
-behavior and keeping compatibility with existing user state.
+behavior.
 
 ## Naming
 
@@ -32,16 +32,6 @@ The supplied `logo.ico` is packaged with the Python module and used by the
 system tray. A generated fallback icon remains available if the asset cannot be
 loaded.
 
-## Compatibility Migration
-
-On first launch, the application moves `%LOCALAPPDATA%\NollieRGBIdle` to
-`%LOCALAPPDATA%\MagicalGirlGlowDown` when the new directory does not already
-exist. This preserves settings and pending lighting recovery state.
-
-The autostart manager migrates the legacy `NollieRGBIdle` registry value to
-`MagicalGirlGlowDown`. Disabling autostart removes both values so stale startup
-commands cannot survive the rename.
-
 ## Verification
 
 The rename is accepted when:
@@ -51,6 +41,6 @@ The rename is accepted when:
 3. Python 3.12.10 runs all Python tests, Ruff, Mypy, and simulation.
 4. The renamed .NET helper builds and passes all tests.
 5. Runtime source and active documentation contain no obsolete internal package,
-   CLI, namespace, or helper names except explicit legacy-migration constants.
+   CLI, namespace, helper, data-directory, or autostart names.
 6. The repository lives at `A:\Code\MagicalGirlGlowDown` and pushes to
    `LingMoe404/MagicalGirlGlowDown`.

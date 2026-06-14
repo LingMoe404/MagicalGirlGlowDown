@@ -14,8 +14,6 @@ from .branding import (
     APP_NAME,
     CLI_NAME,
     DATA_DIR_NAME,
-    LEGACY_APP_NAME,
-    LEGACY_HOME_DIR_NAME,
     MODULE_ENTRY,
     set_windows_app_id,
 )
@@ -64,25 +62,8 @@ def build_parser() -> argparse.ArgumentParser:
 def app_data_dir() -> Path:
     root = os.getenv("LOCALAPPDATA")
     if root:
-        base = Path(root)
-        current = base / DATA_DIR_NAME
-        legacy = base / LEGACY_APP_NAME
-    else:
-        base = Path.home()
-        current = base / f".{CLI_NAME}"
-        legacy = base / LEGACY_HOME_DIR_NAME
-    if not current.exists() and legacy.exists():
-        try:
-            legacy.replace(current)
-        except OSError as exc:
-            logging.getLogger(__name__).warning(
-                "Could not migrate application data from %s to %s: %s",
-                legacy,
-                current,
-                exc,
-            )
-            return legacy
-    return current
+        return Path(root) / DATA_DIR_NAME
+    return Path.home() / f".{CLI_NAME}"
 
 
 async def _simulate(args: argparse.Namespace) -> int:

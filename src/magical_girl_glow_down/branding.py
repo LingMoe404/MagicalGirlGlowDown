@@ -15,10 +15,6 @@ MODULE_ENTRY = "magical_girl_glow_down.main"
 DATA_DIR_NAME = APP_NAME
 AUTOSTART_VALUE_NAME = APP_NAME
 
-# Compatibility identifiers from releases before the final product rename.
-LEGACY_APP_NAME = "NollieRGBIdle"
-LEGACY_HOME_DIR_NAME = ".nollie-rgb-idle"
-
 
 def app_version() -> str:
     try:

@@ -1,5 +1,7 @@
 # 魔法少女·静谧霓虹 (MagicalGirlGlowDown) - Windows Edition
 
+[English](README_EN.md)
+
 ![Version](https://img.shields.io/badge/version-0.1.0-FB7299?style=for-the-badge)
 ![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-OpenAI_Codex-8E75B2?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/OS-Windows_10_%7C_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
