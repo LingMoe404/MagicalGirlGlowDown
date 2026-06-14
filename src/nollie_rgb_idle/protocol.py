@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from .domain import ControllerId
+from .lighting import TargetIdentity
 
 HID_SET_EFFECT = 250
 HID_GET_EFFECT = 249
@@ -145,3 +146,27 @@ class NollieController:
 
     def close(self) -> None:
         self._transport.close()
+
+
+class NollieLightingTarget:
+    def __init__(self, controller: NollieController) -> None:
+        self.controller = controller
+        self.identity = TargetIdentity("nollie", controller.identity.key)
+
+    async def snapshot(self) -> dict[str, object]:
+        canvases = await self.controller.read_standby_brightness()
+        return {"canvases": list(canvases)}
+
+    async def blackout(self, snapshot: dict[str, object]) -> None:
+        canvases = self._canvases(snapshot)
+        await self.controller.write_standby_brightness(tuple(0 for _ in canvases))
+
+    async def restore(self, snapshot: dict[str, object]) -> None:
+        await self.controller.write_standby_brightness(self._canvases(snapshot))
+
+    @staticmethod
+    def _canvases(snapshot: dict[str, object]) -> tuple[int, ...]:
+        canvases = snapshot.get("canvases")
+        if not isinstance(canvases, list):
+            raise ValueError("Nollie snapshot must contain a canvas list")
+        return tuple(int(value) for value in canvases)
