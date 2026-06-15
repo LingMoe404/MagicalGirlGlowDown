@@ -1,5 +1,4 @@
 v0.1.0 - ✨ 魔法少女·静谧霓虹 (Magical Girl Glow Down) v0.1.0 - 始动 (Genesis) | Windows 待机灯效管理守护者
-
 > **"让霓虹静静入眠，在触碰时再次苏醒。"**
 
 经过无数个夜晚的炼成与调试，**魔法少女·静谧霓虹 (Magical Girl Glow Down)** 的初号机终于正式与各位适格者见面了！这是一款常驻 Windows 系统托盘的 RGB 待机管理工具。它通过无感监听键盘、鼠标与各种游戏手柄活动，在系统持续空闲后熄灭设备灯光，并在您的指尖再次触碰时瞬间唤醒、完美恢复原有的华丽色彩；同时具备智能避让机制，与官方/第三方控制软件和谐共存，默默守护你的桌面电竞美学。
@@ -10,16 +9,15 @@ v0.1.0 - ✨ 魔法少女·静谧霓虹 (Magical Girl Glow Down) v0.1.0 - 始动
 > * **仅支持 Nollie 控制器**：不支持 Corsair、Razer、联力等其他品牌的 RGB 控制器。
 > * **仅支持已验证的技嘉主板**：目前仅针对 `X870E AORUS MASTER X3D ICE` 完成了区域白名单匹配和实机测试。其它主板型号默认禁止写入，以防误写入导致硬件异常。
 
-
 ## 🎉 核心术式 (Highlights)
 
 *   **⌨️ 全局空闲监听**: 同时监听键盘、鼠标、XInput、WinMM 与 Raw Input 游戏手柄，空闲自动进入待机（默认 30 秒）。
 *   **🌈 Nollie 深度控制**: 深度适配 Nollie 系列控制器（Nollie1/8/16/32, Prism8, G857D 应用模式），通过 HIDAPI 接口安全读写。
 *   **🖥️ 技嘉主板实机验证**: 已在 `X870E AORUS MASTER X3D ICE` 主板上完成实机验证，完美控制板载 Logo、装甲灯、5V ARGB 接口及 12V RGB 接口。
-*   **🛡️ 软件共存守护**: 
+*   **🛡️ 软件共存守护**:
     *   开启 `NollieRGB.exe` 时，自动释放 HID 设备并暂停控制。
     *   开启 GCC (`Gigabyte Control Center`) 时，仅暂停主板灯效控制，GCC 关闭后自动接管并同步灯效。
-*   **🚀 无痛开机启动**: 通过最高权限的 Windows 计划任务运行，仅在首次启用时请求一次管理员权限，之后登录再无 UAC 弹窗打扰。
+*   **🚀 无痛开机启动**: 通过最高权限的 Windows 计划任务运行，便携版只在首次启用开机自启时确认一次风险；安装版则通过主程序的 `requireAdministrator` 启动模型保证后续管理行为一致。
 
 ## 🛠️ 功能特性 (Features)
 
@@ -36,14 +34,14 @@ v0.1.0 - ✨ 魔法少女·静谧霓虹 (Magical Girl Glow Down) v0.1.0 - 始动
     *   🔵 **Nollie**: 受支持的 Nollie USB HID 控制器（Nollie1 / Nollie8 / Nollie16 / Nollie32 / Prism8 / G857D 模式）。
     *   🟢 **Gigabyte**: 已安装 Gigabyte Control Center (GCC) 的受支持技嘉主板（如 `X870E AORUS MASTER X3D ICE`）。
 *   **Python**: 3.12.10
-*   **Privilege**: 技嘉控制和开机启动安装需要管理员权限（首次运行托盘时请求一次 UAC 提权）。
+*   **Privilege**: 主程序双击启动会请求管理员权限；技嘉控制和开机启动安装也仍需要管理员权限。
 
 ## 📥 部署指南 (Installation)
 
 ### 方式一：下载正式版 (推荐)
 
-*   **安装包 (Setup)**: 下载本页面下方的 `MagicalGirlGlowDown-v0.1.0-Setup.exe`，双击运行并按提示完成安装。
-*   **便携版 (Portable)**: 下载本页面下方的 `MagicalGirlGlowDown-v0.1.0-Portable.7z`，解压至任意目录，双击 `MagicalGirlGlowDown.exe` 即可直接运行。
+*   **安装包 (Setup)**: 下载本页面下方的 `MagicalGirlGlowDown-v0.1.0-Setup.exe`，双击运行并按提示完成安装。安装器会请求管理员权限；安装后主程序本体也会在启动时请求管理员权限。
+*   **便携版 (Portable)**: 下载本页面下方的 `MagicalGirlGlowDown-v0.1.0-Portable.7z`，解压至任意目录，双击 `MagicalGirlGlowDown.exe` 即可运行并请求管理员权限。
 
 ### 方式二：源码运行 (Dev)
 
