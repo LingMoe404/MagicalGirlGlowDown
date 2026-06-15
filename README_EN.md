@@ -254,15 +254,13 @@ development tools:
 * [.NET](https://dotnet.microsoft.com/): Isolated runtime for the Gigabyte
   lighting control component.
 * [uv](https://docs.astral.sh/uv/): Python project and dependency management.
-* **OpenAI Codex**: As the initial co-development AI, assisted with core architecture design, protocol analysis, code implementation, testing, and documentation.
-* **Google Gemini & Antigravity**: As the continuous optimization AI, optimized the architecture via the Antigravity agent platform (including C# helper process persistence, native Windows process monitoring, etc.), refactored code, expanded test coverage, and refined documentation.
+* **OpenAI GPT Codex**: Initial co-development AI.
+* **Google Gemini & Antigravity**: AI agent collaboration for refactoring, optimization, and testing.
 
 ## Behind the Project
 
-MagicalGirlGlowDown is an **AI-assisted project led by LingMoe404**. LingMoe404
-owns product direction, requirements, hardware validation, and final decisions;
-OpenAI Codex and Google Gemini (via the Antigravity platform) collaborate on
-architecture design, implementation, refactoring, debugging, testing, and
-documentation.
+MagicalGirlGlowDown is an **AI-assisted project led by LingMoe404**:
+* **Initial Development**: Co-developed with OpenAI GPT Codex.
+* **Refactoring & Optimization**: Powered by Google Gemini & Antigravity agents.
 
 Copyright © 2026 LingMoe404

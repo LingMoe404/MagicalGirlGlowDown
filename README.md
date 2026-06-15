@@ -214,11 +214,13 @@ dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -c Release -v minima
 * [HIDAPI](https://github.com/libusb/hidapi)：Nollie USB HID 通信。
 * [.NET](https://dotnet.microsoft.com/)：隔离运行技嘉灯光控制组件。
 * [uv](https://docs.astral.sh/uv/)：Python 项目与依赖管理。
-* **OpenAI Codex**：作为初始共同开发 AI，参与核心方案设计、协议分析、代码实现、测试与文档整理。
-* **Google Gemini & Antigravity**：作为持续优化与重构 AI，基于 Antigravity 智能体平台进行架构优化（包括 C# 辅助进程常驻化、原生 Windows 进程监控等重构）、代码精简、测试完善与文档的补充。
+* **OpenAI GPT Codex**：初始共同开发 AI。
+* **Google Gemini & Antigravity**：重构、优化与测试 AI 智能体。
 
 ## 开发幕后
 
-MagicalGirlGlowDown 是一个由 **泠萌404 主导的 AI 辅助开发项目**。泠萌404负责产品方向、需求定义、硬件验证与最终决策；由 OpenAI Codex 与 Google Gemini (在 Antigravity 平台) 协作参与架构设计、代码实现、重构、调试、测试和文档整理。
+MagicalGirlGlowDown 是一个由 **泠萌404 主导，AI 协作开发的项目**：
+* **初始开发**：OpenAI GPT Codex 协作。
+* **重构优化**：Google Gemini & Antigravity 智能体协作。
 
 Copyright © 2026 泠萌404
