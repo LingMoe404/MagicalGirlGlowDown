@@ -13,6 +13,12 @@
 > 支持 Nollie 系列控制器，以及经过实机验证的技嘉主板板载灯光、5V ARGB 与 12V RGB 接口；同时会主动避让 NollieRGB 和 Gigabyte Control Center，减少多个灯效程序争夺硬件的问题。<br>
 > *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with OpenAI Codex.*
 
+> [!IMPORTANT]
+> **⚠️ 硬件支持限制声明 (Hardware Compatibility Disclaimer)**
+> * 本工具**非通用** RGB 控制软件。**不支持**海盗船 (Corsair)、雷蛇 (Razer)、华硕 (ASUS)、微星 (MSI)、华擎 (ASRock)、联力 (Lian Li) 等主流品牌的任意设备。
+> * **仅支持**特定型号的 **Nollie 系列控制器**（通过 USB HID 直连）。
+> * **仅支持**经过配置与验证的**技嘉 (Gigabyte) 主板**（当前仅验证并适配了 `X870E AORUS MASTER X3D ICE` 这一款型号，且必须安装 Gigabyte Control Center）。其他型号或品牌的设备均保持禁止写入以策安全。
+
 ---
 
 ## 核心功能

@@ -18,6 +18,12 @@
 > between lighting applications.<br>
 > *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with OpenAI Codex.*
 
+> [!IMPORTANT]
+> **⚠️ Hardware Compatibility Disclaimer**
+> * This tool is **NOT a universal** RGB control software. It **DOES NOT support** arbitrary devices from Corsair, Razer, ASUS, MSI, ASRock, Lian Li, or other mainstream brands.
+> * It **ONLY supports** specific models of **Nollie series controllers** (via direct USB HID connection).
+> * It **ONLY supports** configured and validated **Gigabyte motherboards** (currently, only `X870E AORUS MASTER X3D ICE` is validated and mapped, requiring Gigabyte Control Center). All other motherboard models or brand devices are write-disabled for safety.
+
 ---
 
 ## Features
