@@ -41,13 +41,18 @@ def _read_manifest(path: Path) -> str:
 
 
 def test_set_admin_manifest_updates_requested_execution_level(tmp_path: Path) -> None:
-    source = Path(
-        r"A:\Code\MagicalGirlGlowDown\src\magical_girl_glow_down\gigabyte_helper\MagicalGirlGlowDown.GigabyteHelper.exe"
+    repo_root = Path(__file__).resolve().parents[1]
+    source = (
+        repo_root
+        / "src"
+        / "magical_girl_glow_down"
+        / "gigabyte_helper"
+        / "MagicalGirlGlowDown.GigabyteHelper.exe"
     )
     target = tmp_path / "helper.exe"
     shutil.copy2(source, target)
 
-    script = Path(r"A:\Code\MagicalGirlGlowDown\scripts\set-admin-manifest.ps1")
+    script = repo_root / "scripts" / "set-admin-manifest.ps1"
     subprocess.run(
         [
             "powershell",
