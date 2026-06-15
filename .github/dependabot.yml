@@ -1,0 +1,83 @@
+version: 2
+updates:
+  # ==========================================
+  # 🔮 核心魔力回路：Python 依赖追踪 (uv 生态)
+  # ==========================================
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "03:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    
+    # 自动指派给项目所有者
+    assignees:
+      - "LingMoe404"
+      
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+      
+    # 依赖分组：减少 PR 噪音
+    groups:
+      ui-toolkit:
+        patterns:
+          - "pyside6*"
+      dev-tools:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+    labels:
+      - "dependencies"
+      - "python"
+
+  # ==========================================
+  # 🟢 辅助炼成回路：C# NuGet 依赖追踪
+  # ==========================================
+  - package-ecosystem: "nuget"
+    directory: "/helper/MagicalGirlGlowDown.GigabyteHelper"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "03:30"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    
+    assignees:
+      - "LingMoe404"
+      
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+      
+    labels:
+      - "dependencies"
+      - "csharp"
+
+  # ==========================================
+  # ⚙️ 云端结界维护：GitHub Actions 工作流更新
+  # ==========================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+      time: "04:00"
+      timezone: "Asia/Shanghai"
+      
+    assignees:
+      - "LingMoe404"
+      
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+      
+    groups:
+      actions:
+        patterns: ["*"]
+    labels:
+      - "dependencies"
+      - "github-actions"
