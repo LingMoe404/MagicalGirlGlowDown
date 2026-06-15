@@ -30,15 +30,33 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
                 "GCC motherboard lighting could not be initialized.");
     }
 
-    private static string CreateStagingDirectory(GccInstallation installation)
-    {
-        var localAppData = Environment.GetFolderPath(
-            Environment.SpecialFolder.LocalApplicationData);
-        var root = Path.Combine(
-            localAppData,
+    public static string BuildStagingRoot(string commonApplicationData) =>
+        Path.Combine(
+            commonApplicationData,
             "MagicalGirlGlowDown",
             "GigabyteHelperStage");
-        Directory.CreateDirectory(root);
+
+    public static bool IsSafeStagingRoot(string path, bool isReparsePoint) =>
+        Directory.Exists(path) && !isReparsePoint;
+
+    private static string CreateStagingDirectory(GccInstallation installation)
+    {
+        var root = BuildStagingRoot(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+        if (!Directory.Exists(root))
+        {
+            throw new AdapterException(
+                "protected_stage_unavailable",
+                "The protected Gigabyte staging directory has not been initialized.");
+        }
+        var attributes = File.GetAttributes(root);
+        if (!IsSafeStagingRoot(root, attributes.HasFlag(FileAttributes.ReparsePoint)))
+        {
+            throw new AdapterException(
+                "protected_stage_invalid",
+                "The protected Gigabyte staging directory is a reparse point.");
+        }
+
         foreach (var existing in Directory.EnumerateDirectories(root))
         {
             try

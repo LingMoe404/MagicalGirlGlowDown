@@ -76,6 +76,15 @@ def app_data_dir() -> Path:
     return Path.home() / f".{CLI_NAME}"
 
 
+def recovery_data_dir() -> Path:
+    from .security_paths import ensure_protected_directory, protected_data_dir
+
+    path = protected_data_dir()
+    ensure_protected_directory(path)
+    return path
+
+
+
 async def _simulate(args: argparse.Namespace) -> int:
     with tempfile.TemporaryDirectory(prefix=f"{APP_NAME}-") as directory:
         result = await run_simulation(
@@ -192,6 +201,7 @@ def main() -> int:
     from .tray import run_tray
 
     set_windows_app_id()
+    recovery_data_dir()
     return run_tray(args.idle_seconds, app_data_dir())
 
 
