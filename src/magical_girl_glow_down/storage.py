@@ -11,11 +11,31 @@ from .domain import AppSettings, BrightnessSnapshot
 from .lighting import LightingError, LightingSnapshot, TargetIdentity
 
 
+import logging
+
+log = logging.getLogger(__name__)
+
+
 class StateStore:
-    def __init__(self, data_dir: Path) -> None:
-        self.data_dir = data_dir
-        self.state_path = data_dir / "state.json"
-        self.settings_path = data_dir / "settings.json"
+    def __init__(self, settings_dir: Path, state_dir: Path | None = None) -> None:
+        self.settings_dir = settings_dir
+        self.state_dir = state_dir or settings_dir
+        self.data_dir = self.settings_dir
+        self.state_path = self.state_dir / "state.json"
+        self.settings_path = self.settings_dir / "settings.json"
+        self.legacy_state_path = self.settings_dir / "state.json"
+
+    def migrate_legacy_state(self) -> None:
+        if self.state_path.exists() or self.legacy_state_path == self.state_path:
+            return
+        if not self.legacy_state_path.exists():
+            return
+        legacy_store = StateStore(self.settings_dir, self.settings_dir)
+        snapshots = legacy_store.load_snapshots()
+        self.save_snapshots(snapshots)
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        migrated = self.settings_dir / f"state.migrated-{stamp}.json"
+        os.replace(self.legacy_state_path, migrated)
 
     def load_snapshots(self) -> dict[str, LightingSnapshot]:
         if not self.state_path.exists():
@@ -29,9 +49,12 @@ class StateStore:
             if version == 1:
                 return self._migrate_v1_snapshots(snapshots)
             if version == 2:
-                loaded, contains_invalid = self._load_v2_snapshots(snapshots)
-                if contains_invalid:
+                loaded, rejected = self._load_v2_snapshots(snapshots)
+                if rejected:
+                    for key, reason in rejected.items():
+                        log.warning("Discarding invalid recovery snapshot %s: %s", key, reason)
                     self._quarantine_state()
+                    self.save_snapshots(loaded)
                 return loaded
             raise ValueError(f"unsupported state version: {version}")
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
@@ -60,9 +83,9 @@ class StateStore:
     @staticmethod
     def _load_v2_snapshots(
         snapshots: dict[str, Any],
-    ) -> tuple[dict[str, LightingSnapshot], bool]:
+    ) -> tuple[dict[str, LightingSnapshot], dict[str, str]]:
         loaded: dict[str, LightingSnapshot] = {}
-        contains_invalid = False
+        rejected: dict[str, str] = {}
         for key, item in snapshots.items():
             try:
                 if not isinstance(item, dict):
@@ -71,13 +94,13 @@ class StateStore:
                 if key != snapshot.identity.key:
                     raise ValueError("snapshot key does not match target identity")
                 loaded[key] = snapshot
-            except (KeyError, TypeError, ValueError):
-                contains_invalid = True
-        return loaded, contains_invalid
+            except (KeyError, TypeError, ValueError) as exc:
+                rejected[str(key)] = str(exc)
+        return loaded, rejected
 
     def _quarantine_state(self) -> None:
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        quarantine = self.data_dir / f"state.corrupt-{stamp}.json"
+        quarantine = self.state_dir / f"state.corrupt-{stamp}.json"
         with suppress(OSError):
             os.replace(self.state_path, quarantine)
 
@@ -114,7 +137,8 @@ class StateStore:
             serialized = json.dumps(payload, ensure_ascii=True, indent=2) + "\n"
         except (TypeError, ValueError) as exc:
             raise LightingError("state is not JSON serializable") from exc
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(".tmp")
         temporary.write_text(serialized, encoding="utf-8")
         os.replace(temporary, path)
+

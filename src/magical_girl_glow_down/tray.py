@@ -69,12 +69,13 @@ class Worker(threading.Thread):
         data_dir: Path,
         monitor: GameControllerMonitor,
         bridge: StatusBridge,
+        state_dir: Path | None = None,
     ) -> None:
         super().__init__(name="MagicalGirlGlowDown-worker", daemon=True)
         self.idle_seconds = idle_seconds
         self.monitor = monitor
         self.bridge = bridge
-        self.service = LightingService(StateStore(data_dir))
+        self.service = LightingService(StateStore(data_dir, state_dir))
         self.policy = WorkerPolicy(self.service)
         self.stop_event = threading.Event()
         self.pause_event = threading.Event()
@@ -205,14 +206,19 @@ def _icon(color: str) -> QIcon:
     return icon if not icon.isNull() else _fallback_icon(color)
 
 
-def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
+def run_tray(
+    idle_seconds: float | None,
+    settings_dir: Path,
+    state_dir: Path | None = None,
+) -> int:
     instance = QApplication.instance()
     app = cast(QApplication, instance) if instance else QApplication([])
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName(APP_NAME)
     app.setApplicationDisplayName(APP_DISPLAY_NAME)
     app.setWindowIcon(_icon("#00a9b7"))
-    store = StateStore(data_dir)
+    store = StateStore(settings_dir, state_dir)
+    store.migrate_legacy_state()
     settings = store.load_settings()
     if idle_seconds is not None:
         settings = AppSettings(
@@ -225,7 +231,13 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
         store.save_settings(settings)
     monitor = GameControllerMonitor()
     bridge = StatusBridge()
-    worker = Worker(settings.idle_seconds, data_dir, monitor, bridge)
+    worker = Worker(
+        settings.idle_seconds,
+        settings_dir,
+        monitor,
+        bridge,
+        state_dir=state_dir,
+    )
 
     host = QWidget()
     host.setWindowTitle(f"{APP_NAME} input host")

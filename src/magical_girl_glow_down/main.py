@@ -201,8 +201,11 @@ def main() -> int:
     from .tray import run_tray
 
     set_windows_app_id()
-    recovery_data_dir()
-    return run_tray(args.idle_seconds, app_data_dir())
+    return run_tray(
+        args.idle_seconds,
+        settings_dir=app_data_dir(),
+        state_dir=recovery_data_dir(),
+    )
 
 
 if __name__ == "__main__":
