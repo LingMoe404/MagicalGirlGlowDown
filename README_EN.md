@@ -121,16 +121,12 @@ require separate validation.
 
 ## Downloads
 
-Every non-documentation code push produces:
+### Method 1: Download Official Release (Recommended)
 
-* `MagicalGirlGlowDown-v<version>-Portable.7z`: Extract and run directly.
-* `MagicalGirlGlowDown-v<version>-Setup.exe`: Requests administrator permission
-  once during installation and creates a sign-in task that does not prompt for
-  UAC on every startup.
-
-Open the repository's
-[Actions page](https://github.com/LingMoe404/MagicalGirlGlowDown/actions/workflows/autobuild.yml),
-select the latest successful `AutoBuild`, and download the required artifact.
+1. Go to the [**Releases Page**](https://github.com/LingMoe404/MagicalGirlGlowDown/releases) and download the latest release assets.
+2. Choose whichever suits you best:
+   * `MagicalGirlGlowDown-v<version>-Portable.7z`: unzip it to any directory and run it directly.
+   * `MagicalGirlGlowDown-v<version>-Setup.exe`: run the installer, which requests administrator permission once during installation to create a sign-in task that does not prompt for UAC on subsequent startups.
 
 ## Running from Source
 
