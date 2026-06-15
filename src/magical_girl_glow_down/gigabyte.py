@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .lighting import LightingError, TargetIdentity
+from .runtime import is_compiled
 
 log = logging.getLogger(__name__)
 SUPPORTED_CATEGORIES = frozenset({"onboard", "argb5v", "rgb12v", "unsupported"})
@@ -37,10 +38,27 @@ class GigabyteProbe:
     assembly_versions: dict[str, str] | None = None
 
 
+def _development_gcc_arguments() -> tuple[str, ...]:
+    configured = os.getenv("MAGICALGIRLGLOWDOWN_GCC_ROOT")
+    if is_compiled() or not configured:
+        return ()
+    log.warning(
+        "Using administrator-level development override for GCC root: %s",
+        configured,
+    )
+    return ("--gcc-root", configured)
+
+
 def find_helper_command() -> tuple[str, ...]:
     configured = os.getenv("MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER")
+    if configured and not is_compiled():
+        log.warning(
+            "Using administrator-level development override for Gigabyte helper: %s",
+            configured,
+        )
+        return (configured, *_development_gcc_arguments())
     if configured:
-        return (configured,)
+        log.warning("Ignoring Gigabyte helper override in packaged runtime")
 
     package_dir = Path(__file__).resolve().parent
     packaged = package_dir / "gigabyte_helper" / "MagicalGirlGlowDown.GigabyteHelper.exe"
@@ -54,8 +72,16 @@ def find_helper_command() -> tuple[str, ...]:
         / "MagicalGirlGlowDown.GigabyteHelper.csproj"
     )
     if project.exists():
-        return ("dotnet", "run", "--project", str(project), "--")
+        return (
+            "dotnet",
+            "run",
+            "--project",
+            str(project),
+            "--",
+            *_development_gcc_arguments(),
+        )
     raise GigabyteError("Gigabyte helper executable was not found")
+
 
 
 class GigabyteHelperClient:
