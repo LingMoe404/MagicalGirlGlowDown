@@ -72,7 +72,7 @@ async def test_gcc_ownership_discards_stale_pending_snapshot(tmp_path) -> None:
     assert "gigabyte:board" not in service.snapshots
 
 
-async def test_gcc_ownership_discards_orphaned_persisted_snapshot(tmp_path) -> None:
+async def test_gcc_ownership_preserves_pending_restore_snapshot(tmp_path) -> None:
     service = LightingService(StateStore(tmp_path))
     service.snapshots["gigabyte:board"] = LightingSnapshot(
         TargetIdentity("gigabyte", "board"),
@@ -84,7 +84,7 @@ async def test_gcc_ownership_discards_orphaned_persisted_snapshot(tmp_path) -> N
 
     await policy.tick([], idle=True, gcc_running=True)
 
-    assert "gigabyte:board" not in service.snapshots
+    assert "gigabyte:board" in service.snapshots
 
 
 async def test_worker_run_loop_throttling_and_close(tmp_path, monkeypatch) -> None:
@@ -228,5 +228,101 @@ async def test_worker_run_loop_finally_closes_gigabyte(tmp_path, monkeypatch) ->
 
     # gigabyte_target should have been closed in the finally block
     assert mock_gigabyte_target.close_calls == 1
+
+
+from copy import deepcopy
+
+from magical_girl_glow_down.lighting import LightingError
+from magical_girl_glow_down.tray import StatusBridge, Worker
+from magical_girl_glow_down.windows_input import GameControllerMonitor
+from tests.fakes import FakeLightingTarget
+
+
+class TransitionGigabyteTarget(FakeLightingTarget):
+    def __init__(self) -> None:
+        super().__init__(
+            "gigabyte",
+            "board",
+            {"zones": [{"id": "logo", "brightness": 80}]},
+        )
+        self.reject_restore = False
+        self.close_calls = 0
+
+    async def restore(self, snapshot: dict[str, object]) -> None:
+        self.restore_calls += 1
+        if self.reject_restore:
+            raise LightingError("gcc_running")
+        self.state = deepcopy(snapshot)
+
+    async def close(self) -> None:
+        self.close_calls += 1
+
+
+def make_transition_worker(tmp_path) -> Worker:
+    return Worker(
+        idle_seconds=30.0,
+        data_dir=tmp_path,
+        monitor=GameControllerMonitor(_xinput=None),
+        bridge=StatusBridge(),
+        state_dir=tmp_path,
+    )
+
+
+async def test_gcc_start_does_not_discard_failed_pending_restore(
+    tmp_path,
+) -> None:
+    target = TransitionGigabyteTarget()
+    worker = make_transition_worker(tmp_path)
+    await worker.service.dim([target])
+    target.reject_restore = True
+
+    current, next_scan = await worker._transition_gigabyte_target(
+        target,
+        gcc_running=True,
+        was_gcc_running=False,
+        now=10.0,
+        next_scan=0.0,
+    )
+
+    assert current is None
+    assert next_scan == 12.0
+    assert target.restore_calls == 1
+    assert target.close_calls == 1
+    assert worker.service.snapshots["gigabyte:board"].pending_restore is True
+
+
+async def test_gcc_close_retries_pending_restore_before_new_dim(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    target = TransitionGigabyteTarget()
+    worker = make_transition_worker(tmp_path)
+    await worker.service.dim([target])
+    target.reject_restore = True
+    await worker._transition_gigabyte_target(
+        target,
+        gcc_running=True,
+        was_gcc_running=False,
+        now=10.0,
+        next_scan=0.0,
+    )
+    target.reject_restore = False
+
+    async def discover() -> TransitionGigabyteTarget:
+        return target
+
+    monkeypatch.setattr(worker, "_discover_gigabyte_target", discover)
+    current, _ = await worker._transition_gigabyte_target(
+        None,
+        gcc_running=False,
+        was_gcc_running=True,
+        now=20.0,
+        next_scan=12.0,
+    )
+
+    assert current is target
+    assert target.restore_calls == 2
+    assert worker.service.snapshots["gigabyte:board"].pending_restore is False
+
 
 

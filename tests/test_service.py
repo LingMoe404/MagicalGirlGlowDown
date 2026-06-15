@@ -377,3 +377,39 @@ async def test_empty_legacy_nollie_controller_is_skipped(tmp_path) -> None:
     assert controller.brightness == []
     assert service.snapshots == {}
     assert service.state is ServiceState.ACTIVE
+
+
+def test_has_pending_restore_for_backend(tmp_path) -> None:
+    service = LightingService(StateStore(tmp_path))
+    assert not service.has_pending_restore_for_backend("gigabyte")
+    
+    snapshot = LightingSnapshot(
+        TargetIdentity("gigabyte", "board"),
+        {"zones": []},
+        pending_restore=True,
+    )
+    service.snapshots["gigabyte:board"] = snapshot
+    assert service.has_pending_restore_for_backend("gigabyte")
+    assert not service.has_pending_restore_for_backend("nollie")
+
+
+def test_release_backend_if_recovered(tmp_path) -> None:
+    service = LightingService(StateStore(tmp_path))
+    snapshot = LightingSnapshot(
+        TargetIdentity("gigabyte", "board"),
+        {"zones": []},
+        pending_restore=True,
+    )
+    service.snapshots["gigabyte:board"] = snapshot
+    
+    service.release_backend_if_recovered("gigabyte")
+    assert "gigabyte:board" in service.snapshots
+    
+    service.snapshots["gigabyte:board"] = LightingSnapshot(
+        TargetIdentity("gigabyte", "board"),
+        {"zones": []},
+        pending_restore=False,
+    )
+    service.release_backend_if_recovered("gigabyte")
+    assert "gigabyte:board" not in service.snapshots
+

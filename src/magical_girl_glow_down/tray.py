@@ -85,6 +85,30 @@ class Worker(threading.Thread):
     def run(self) -> None:
         asyncio.run(self._run())
 
+    async def _transition_gigabyte_target(
+        self,
+        target: GigabyteLightingTarget | None,
+        *,
+        gcc_running: bool,
+        was_gcc_running: bool,
+        now: float,
+        next_scan: float,
+    ) -> tuple[GigabyteLightingTarget | None, float]:
+        if gcc_running:
+            if target is not None:
+                await self.service.restore([target])
+                await target.close()
+            return None, now + 2
+
+        if target is None and now >= next_scan:
+            target = await self._discover_gigabyte_target()
+            next_scan = now + 5
+
+        if was_gcc_running and target is not None:
+            await self.service.restore([target])
+
+        return target, next_scan
+
     async def _run(self) -> None:
         controllers: list[NollieController] = []
         nollie_targets: list[NollieLightingTarget] = []
@@ -111,14 +135,13 @@ class Worker(threading.Thread):
                         NollieLightingTarget(controller) for controller in controllers
                     ]
                     last_scan = now
-                if gcc_is_running or was_gcc_running:
-                    if gigabyte_target is not None:
-                        await gigabyte_target.close()
-                    gigabyte_target = None
-                    next_gigabyte_scan = now + 2
-                elif gigabyte_target is None and now >= next_gigabyte_scan:
-                    gigabyte_target = await self._discover_gigabyte_target()
-                    next_gigabyte_scan = now + 5
+                gigabyte_target, next_gigabyte_scan = await self._transition_gigabyte_target(
+                    gigabyte_target,
+                    gcc_running=gcc_is_running,
+                    was_gcc_running=was_gcc_running,
+                    now=now,
+                    next_scan=next_gigabyte_scan,
+                )
                 self.monitor.poll()
                 active = (
                     keyboard_mouse_idle_seconds() < self.idle_seconds
@@ -156,10 +179,6 @@ class Worker(threading.Thread):
                         controller.close()
                     controllers = []
                     nollie_targets = []
-                if gcc_is_running:
-                    if gigabyte_target is not None:
-                        await gigabyte_target.close()
-                    gigabyte_target = None
                 was_gcc_running = gcc_is_running
                 self.bridge.status_changed.emit(status)
                 await asyncio.sleep(0.25)
