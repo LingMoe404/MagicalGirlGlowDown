@@ -28,6 +28,7 @@ from .gigabyte import GigabyteError, GigabyteHelperClient, GigabyteLightingTarge
 from .lighting import LightingTarget
 from .protocol import NollieController, NollieLightingTarget
 from .runtime import runtime_command
+from .i18n import t
 from .service import LightingService
 from .storage import StateStore
 from .windows_input import (
@@ -237,14 +238,14 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
 
     tray = QSystemTrayIcon(_icon("#00a9b7"), app)
     menu = QMenu()
-    status_action = QAction("Starting...", menu)
+    status_action = QAction(t("starting"), menu)
     status_action.setEnabled(False)
-    pause_action = QAction("Pause", menu)
-    restore_action = QAction("Restore lighting now", menu)
-    settings_action = QAction("Set idle timeout...", menu)
-    autostart_action = QAction("Start with Windows", menu)
+    pause_action = QAction(t("pause"), menu)
+    restore_action = QAction(t("restore_now"), menu)
+    settings_action = QAction(t("set_timeout"), menu)
+    autostart_action = QAction(t("start_with_windows"), menu)
     autostart_action.setCheckable(True)
-    exit_action = QAction("Exit", menu)
+    exit_action = QAction(t("exit"), menu)
     command = subprocess.list2cmdline(runtime_command())
     autostart = AutostartManager(WindowsTaskScheduler(), command)
     autostart_action.setChecked(autostart.enabled())
@@ -260,18 +261,34 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
     tray.setToolTip(APP_DISPLAY_NAME)
 
     def update_status(status: str) -> None:
-        status_action.setText(status)
-        tray.setToolTip(f"{APP_DISPLAY_NAME} - {status}")
+        local_status = status
+        if status == "Paused":
+            local_status = t("paused")
+        elif status == "Active":
+            local_status = t("running")
+        elif status == "Dimmed":
+            local_status = t("idle")
+        elif status == "Waiting for lighting devices":
+            local_status = t("waiting_devices")
+        elif status == "Paused: GCC and NollieRGB are open":
+            local_status = t("paused_both_open")
+        elif status == "Gigabyte paused: GCC is open":
+            local_status = t("paused_gcc_open")
+        elif status == "Nollie paused: NollieRGB is open":
+            local_status = t("paused_nolliergb_open")
+
+        status_action.setText(local_status)
+        tray.setToolTip(f"{APP_DISPLAY_NAME} - {local_status}")
         tray.setIcon(_icon("#777777" if status.startswith("Paused") else "#00a9b7"))
 
     def toggle_pause() -> None:
         if worker.pause_event.is_set():
             worker.pause_event.clear()
-            pause_action.setText("Pause")
+            pause_action.setText(t("pause"))
         else:
             worker.pause_event.set()
             worker.restore_event.set()
-            pause_action.setText("Resume")
+            pause_action.setText(t("resume"))
 
     def shutdown() -> None:
         worker.stop_event.set()
@@ -281,8 +298,8 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
     def change_timeout() -> None:
         value, accepted = QInputDialog.getDouble(
             None,
-            APP_DISPLAY_NAME,
-            "Idle timeout (seconds):",
+            t("timeout_dialog_title"),
+            t("timeout_dialog_label"),
             worker.idle_seconds,
             1,
             86400,
@@ -326,8 +343,8 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(
                 None,
-                APP_DISPLAY_NAME,
-                f"设置开机启动失败：\n{str(e)}\n\n提示：此操作通常需要管理员权限。请尝试以管理员身份运行程序后重试。",
+                t("autostart_failed_title"),
+                t("autostart_failed_msg", error=str(e)),
             )
 
     bridge.status_changed.connect(update_status)

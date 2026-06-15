@@ -125,9 +125,10 @@ def main() -> int:
         )
         and not is_elevated()
     ):
+        from .i18n import t
         if relaunch_elevated(sys.argv[1:]):
             return 0
-        print(f"{APP_NAME} needs administrator permission for Gigabyte lighting.")
+        print(t("admin_needed"), file=sys.stderr)
         return 1
     if args.simulate:
         return asyncio.run(_simulate(args))

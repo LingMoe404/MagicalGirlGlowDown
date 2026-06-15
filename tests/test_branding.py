@@ -10,7 +10,7 @@ from magical_girl_glow_down.branding import (
 
 def test_branding_uses_final_product_identity() -> None:
     assert APP_NAME == "MagicalGirlGlowDown"
-    assert APP_DISPLAY_NAME == "魔法少女·静谧霓虹"
+    assert APP_DISPLAY_NAME == "MagicalGirlGlowDown"
     assert APP_ID == "LingMoe404.MagicalGirlGlowDown"
     assert DISTRIBUTION_NAME == "magical-girl-glow-down"
     assert CLI_NAME == "magical-girl-glow-down"

@@ -6,7 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 APP_NAME = "MagicalGirlGlowDown"
-APP_DISPLAY_NAME = "魔法少女·静谧霓虹"
+APP_DISPLAY_NAME = "MagicalGirlGlowDown"
 APP_ID = "LingMoe404.MagicalGirlGlowDown"
 CLI_NAME = "magical-girl-glow-down"
 DISTRIBUTION_NAME = "magical-girl-glow-down"

@@ -11,7 +11,7 @@
 #endif
 
 #define MyAppName "MagicalGirlGlowDown"
-#define MyAppDisplayName "魔法少女·静谧霓虹"
+#define MyAppDisplayName "MagicalGirlGlowDown"
 #define MyAppExeName "MagicalGirlGlowDown.exe"
 #define MyAppPublisher "泠萌404"
 #define MyAppURL "https://github.com/LingMoe404/MagicalGirlGlowDown"
