@@ -17,7 +17,6 @@ from magical_girl_glow_down.gigabyte import (
 from magical_girl_glow_down.lighting import TargetIdentity
 
 
-
 def _write_helper(path: Path, response: dict[str, object]) -> tuple[str, ...]:
     path.write_text(
         "import json, sys\n"

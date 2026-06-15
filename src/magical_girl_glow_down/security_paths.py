@@ -13,11 +13,6 @@ PROTECTED_DIRECTORY_SDDL = (
     "(A;OICI;FA;;;SY)"
     "(A;OICI;FA;;;BA)"
 )
-SET_ACL_SCRIPT = (
-    "$acl = New-Object System.Security.AccessControl.DirectorySecurity; "
-    "$acl.SetSecurityDescriptorSddlForm($args[0]); "
-    "Set-Acl -LiteralPath $args[1] -AclObject $acl"
-)
 
 
 def protected_data_dir() -> Path:
@@ -41,14 +36,20 @@ def ensure_protected_directory(
     path.mkdir(parents=True, exist_ok=True)
     if _is_reparse_point(path):
         raise OSError(f"protected path is a reparse point: {path}")
+    script = (
+        f"& {{ "
+        f"$ErrorActionPreference = 'Stop'; "
+        f"$acl = New-Object System.Security.AccessControl.DirectorySecurity; "
+        f"$acl.SetSecurityDescriptorSddlForm('{PROTECTED_DIRECTORY_SDDL}'); "
+        f"Set-Acl -LiteralPath '{path}' -AclObject $acl"
+        f" }}"
+    )
     command = (
         "powershell.exe",
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        SET_ACL_SCRIPT,
-        PROTECTED_DIRECTORY_SDDL,
-        str(path),
+        script,
     )
     result = run(
         command,
@@ -68,8 +69,8 @@ def is_protected_install_path(
     candidates = roots or tuple(
         Path(value)
         for value in (
-            os.getenv("ProgramFiles"),
-            os.getenv("ProgramFiles(x86)"),
+            os.getenv("PROGRAMFILES"),
+            os.getenv("PROGRAMFILES(X86)"),
         )
         if value
     )

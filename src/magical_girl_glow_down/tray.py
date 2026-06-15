@@ -5,9 +5,9 @@ import logging
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from ctypes import wintypes
 from pathlib import Path
-from collections.abc import Callable
 from typing import cast
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QObject, QTimer, Signal
@@ -36,8 +36,8 @@ from .storage import StateStore
 from .windows_input import (
     GameControllerMonitor,
     keyboard_mouse_idle_seconds,
-    register_game_controller_raw_input,
     read_raw_input_report,
+    register_game_controller_raw_input,
 )
 from .worker import WorkerPolicy
 

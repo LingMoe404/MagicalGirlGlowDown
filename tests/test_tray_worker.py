@@ -1,6 +1,17 @@
-from magical_girl_glow_down.lighting import LightingSnapshot, TargetIdentity
+import threading
+from copy import deepcopy
+
+import pytest
+
+from magical_girl_glow_down.lighting import (
+    LightingError,
+    LightingSnapshot,
+    TargetIdentity,
+)
 from magical_girl_glow_down.service import LightingService
 from magical_girl_glow_down.storage import StateStore
+from magical_girl_glow_down.tray import StatusBridge, Worker, WorkerController
+from magical_girl_glow_down.windows_input import GameControllerMonitor
 from magical_girl_glow_down.worker import WorkerPolicy
 from tests.fakes import FakeLightingTarget
 
@@ -230,12 +241,6 @@ async def test_worker_run_loop_finally_closes_gigabyte(tmp_path, monkeypatch) ->
     assert mock_gigabyte_target.close_calls == 1
 
 
-from copy import deepcopy
-
-from magical_girl_glow_down.lighting import LightingError
-from magical_girl_glow_down.tray import StatusBridge, Worker
-from magical_girl_glow_down.windows_input import GameControllerMonitor
-from tests.fakes import FakeLightingTarget
 
 
 class TransitionGigabyteTarget(FakeLightingTarget):
@@ -325,9 +330,7 @@ async def test_gcc_close_retries_pending_restore_before_new_dim(
     assert worker.service.snapshots["gigabyte:board"].pending_restore is False
 
 
-import threading
-import pytest
-from magical_girl_glow_down.tray import WorkerController
+
 
 class RecordingSignal:
     def __init__(self) -> None:

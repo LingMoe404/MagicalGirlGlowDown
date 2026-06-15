@@ -1,9 +1,9 @@
 from magical_girl_glow_down.windows_input import (
-    state_has_activity,
-    GameControllerMonitor,
-    RAWINPUTHEADER,
     RAWHID_PREFIX,
+    RAWINPUTHEADER,
+    GameControllerMonitor,
     parse_raw_hid_buffer,
+    state_has_activity,
 )
 
 

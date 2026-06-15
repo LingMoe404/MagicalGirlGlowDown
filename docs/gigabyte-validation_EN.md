@@ -86,3 +86,11 @@ uv run magical-girl-glow-down --gigabyte-test-all --restore-after 5 --debug
 The restore delay must be from 1 through 30 seconds. Restoration runs from a
 `finally` block, including cancellation paths. The helper refuses snapshot,
 blackout, and restore operations while `GCC.exe` is running.
+
+## Hardened Security Boundaries and Recovery Policies
+
+To ensure the security and recovery reliability of motherboard lighting control under administrative privileges, the following mechanisms are implemented:
+
+1. **Packaged Run Isolation**: In packaged releases, any environment path overrides (`MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` and `MAGICALGIRLGLOWDOWN_GCC_ROOT`) are strictly ignored. The program searches for GCC components exclusively under the fixed path `%ProgramFiles%\GIGABYTE\Control Center`, preventing path injection and hijacking.
+2. **Protected Staging and Storage Directories**: The C# helper DLL staging area and the Python recovery state are located under `%ProgramData%\MagicalGirlGlowDown`. This directory enforces an ACL limiting write access exclusively to the built-in Administrators group and SYSTEM. On startup, the program verifies that neither this directory nor its parents are reparse points (symbolic links/junctions). Any detected reparse point leads to an immediate termination to prevent privilege escalation.
+3. **GCC Conflict and Snapshot Preservation**: If GCC starts during blackout, the tool yields motherboard control. If the handoff causes a restore failure, the snapshot is marked `pending_restore` and safely preserved in `%ProgramData%\MagicalGirlGlowDown\state.json`. Once GCC is closed, the tool priority-restores this pending state before resuming normal idle loops, ensuring hardware configurations are never lost.

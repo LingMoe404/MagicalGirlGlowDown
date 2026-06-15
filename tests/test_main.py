@@ -5,7 +5,6 @@ import pytest
 from magical_girl_glow_down.main import app_data_dir, build_parser, main
 
 
-
 def test_cli_parses_simulation_options() -> None:
     args = build_parser().parse_args(["--simulate", "--cycles", "2", "--idle-seconds", "0.1"])
     assert args.simulate is True
@@ -61,7 +60,7 @@ def test_cli_portable_autostart_requires_explicit_risk_flag(
         lambda arguments=(): (r"C:\Users\Alice\Downloads\MagicalGirlGlowDown.exe",),
     )
     monkeypatch.setattr(
-        "magical_girl_glow_down.main.requires_portable_confirmation",
+        "magical_girl_glow_down.autostart.requires_portable_confirmation",
         lambda executable: True,
     )
     monkeypatch.setattr(

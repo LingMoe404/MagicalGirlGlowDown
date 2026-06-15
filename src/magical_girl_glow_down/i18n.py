@@ -113,7 +113,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "portable_autostart_warning_title": "Autostart Security Warning",
         "portable_autostart_warning_message": (
             "Security Warning: The executable is located in a user-writable directory.\n\n"
-            "Another process able to replace this executable could gain administrator privileges at the next sign-in.\n\n"
+            "Another process able to replace this executable "
+            "could gain administrator privileges at the next sign-in.\n\n"
             "Installing the application under Program Files is recommended to reduce this risk.\n\n"
             "Do you want to continue enabling autostart anyway?"
         ),

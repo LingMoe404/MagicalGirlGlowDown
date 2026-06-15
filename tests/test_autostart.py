@@ -28,6 +28,7 @@ def test_autostart_is_reversible() -> None:
 
 def test_portable_autostart_requires_confirmation() -> None:
     from pathlib import Path
+
     from magical_girl_glow_down.autostart import requires_portable_confirmation
 
     assert requires_portable_confirmation(
@@ -38,6 +39,7 @@ def test_portable_autostart_requires_confirmation() -> None:
 
 def test_program_files_autostart_does_not_require_confirmation() -> None:
     from pathlib import Path
+
     from magical_girl_glow_down.autostart import requires_portable_confirmation
 
     assert not requires_portable_confirmation(

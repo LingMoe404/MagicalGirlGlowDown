@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from contextlib import suppress
 from datetime import UTC, datetime
@@ -9,9 +10,6 @@ from typing import Any
 
 from .domain import AppSettings, BrightnessSnapshot
 from .lighting import LightingError, LightingSnapshot, TargetIdentity
-
-
-import logging
 
 log = logging.getLogger(__name__)
 

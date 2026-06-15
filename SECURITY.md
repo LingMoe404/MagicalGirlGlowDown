@@ -25,6 +25,12 @@
     *   注册任务被严格限制为仅执行本软件目录内的可执行文件，防止恶意软件篡改路径进行提权攻击。
 3.  **硬件写入安全 (Write Protection)**:
     *   为了防止因地址冲突导致硬件损坏，程序对主板硬件端口和配置参数进行了严格的**只读白名单过滤**。任何未经验证的设备/寄存器写入都会触发拒绝写入，并输出 `unsupported` 日志。
+4.  **打包版本安全隔离 (Packaged Build Isolation)**:
+    *   打包后的发布版本会自动忽略 `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` 和 `MAGICALGIRLGLOWDOWN_GCC_ROOT` 环境变量，仅从内置的可信目录加载辅助客户端，且仅从系统标准 `%ProgramFiles%\GIGABYTE\Control Center` 加载 GCC，杜绝利用环境变量覆盖 DLL 或执行路径的安全隐患。
+5.  **受保护的暂存与存储目录 (Protected Data Directories)**:
+    *   所有的 DLL 暂存（staging）和灯光恢复状态（`state.json`）均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。该目录由程序启动时在特权上下文中创建，剥夺了普通用户和非特权进程的写权限（仅允许 `SYSTEM` 和 `Administrators` 读写），并在每次加载前严格执行符号链接（Symbolic Link）和连接点（Junction）等重解析点防篡改检查，防止非法提权。
+6.  **便携版自启动确认 (Portable Autostart Warning)**:
+    *   如果本程序在非受保护的用户可写目录下运行，启用开机自启动时会强制弹出安全警示，必须经用户明确同意才能创建任务。
 
 ## 报告漏洞 (Reporting a Vulnerability)
 
@@ -66,6 +72,12 @@ To help security researchers and users understand our architecture:
     *   This task is strictly hardcoded to launch the specific executable path in the program folder, preventing path traversal or privilege hijacking.
 3.  **Hardware Write Safety**:
     *   To prevent hardware damage from incorrect register writes, we enforce a strict **read-only whitelist** for motherboard IDs and lighting zones. Any unsupported configuration defaults to write-protected.
+4.  **Packaged Build Isolation**:
+    *   Packaged builds strictly ignore `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` and `MAGICALGIRLGLOWDOWN_GCC_ROOT` environment variables. They only execute the trusted C# helper in their package folder, and resolve GCC exclusively from `%ProgramFiles%\GIGABYTE\Control Center` to prevent path injection/hijacking.
+5.  **Protected Data Directories**:
+    *   All helper staging folders and recovery state (`state.json`) are stored in `%ProgramData%\MagicalGirlGlowDown`. This directory enforces an ACL that allows full control only to `SYSTEM` and `Administrators`, rejecting any standard-user write access. The app also verifies on startup that neither the directory nor its parents are junctions or symbolic links, preventing redirection attacks.
+6.  **Portable Autostart Warning**:
+    *   Enabling autostart for a portable build running outside a protected path (like `Program Files`) triggers a mandatory security dialog requiring explicit confirmation.
 
 ## Reporting a Vulnerability
 

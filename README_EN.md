@@ -219,6 +219,19 @@ See [Nollie protocol notes](docs/protocol-notes_EN.md) for the protocol analysis
 and [Gigabyte validation notes](docs/gigabyte-validation_EN.md) for the hardware
 validation process.
 
+## Security and Hardened Runtime
+
+To ensure system and hardware security while running with administrative privileges, this utility implements the following security hardening:
+
+1. **Privilege Model**: The main tray application and the C# helper process both run with elevated administrator privileges.
+2. **Packaged Build Boundaries**: Packaged executables strictly ignore any helper or GCC environment overrides (e.g. `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` and `MAGICALGIRLGLOWDOWN_GCC_ROOT`), loading only the helper located in their own directory, and searching for GCC only under `%ProgramFiles%\GIGABYTE\Control Center`.
+3. **Source Runtime Overrides**: The source execution may honor development overrides for helper or GCC paths, but logs a warning whenever an override path is loaded.
+4. **Protected Directories**: The recovery state (`state.json`) and Gigabyte staged DLLs are located in the global `%ProgramData%\MagicalGirlGlowDown` directory. This directory restricts write access to `SYSTEM` and `Administrators` only, and performs ACL and reparse-point (symlink/junction) security verification on every startup, failing closed if protection cannot be verified.
+5. **Portable Autostart Security**: Enabling boot-on-login for a portable build (outside `Program Files`) prompts the user with an explicit elevation and executable-replacement warning. User confirmation is required to enable autostart.
+6. **Robust Failure Handling**:
+   * **Pending Restore Snapshots**: If GCC is running and recovery fails, the snapshot remains marked `pending_restore` and is preserved. It is retried and marked complete once GCC closes, ensuring no recovery state is lost.
+   * **Background Worker Manual Retry**: If the background input-monitoring worker encounters a fatal exception, it shuts down gracefully, shows a "Background service failed" status in the tray, and enables a "Retry background service" action for manual recovery.
+
 ## Usage Notes
 
 1. Before first use, back up the current lighting configuration in NollieRGB or

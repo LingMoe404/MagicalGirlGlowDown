@@ -11,14 +11,12 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
-
 from .branding import (
     APP_NAME,
     CLI_NAME,
     DATA_DIR_NAME,
     set_windows_app_id,
 )
-from .autostart import requires_portable_confirmation
 from .runtime import runtime_command
 from .simulator import run_simulation
 
