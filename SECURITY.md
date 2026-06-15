@@ -25,6 +25,12 @@
     *   注册任务被严格限制为仅执行本软件目录内的可执行文件，防止恶意软件篡改路径进行提权攻击。
 3.  **硬件写入安全 (Write Protection)**:
     *   为了防止因地址冲突导致硬件损坏，程序对主板硬件端口和配置参数进行了严格的**只读白名单过滤**。任何未经验证的设备/寄存器写入都会触发拒绝写入，并输出 `unsupported` 日志。
+4.  **打包版本安全隔离 (Packaged Build Isolation)**:
+    *   打包后的发布版本会自动忽略 `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` 和 `MAGICALGIRLGLOWDOWN_GCC_ROOT` 环境变量，仅从内置的可信目录加载辅助客户端，且仅从系统标准 `%ProgramFiles%\GIGABYTE\Control Center` 加载 GCC，杜绝利用环境变量覆盖 DLL 或执行路径的安全隐患。
+5.  **受保护的暂存与存储目录 (Protected Data Directories)**:
+    *   所有的 DLL 暂存（staging）和灯光恢复状态（`state.json`）均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。该目录由程序在提升权限上下文中创建并复检，要求目录本身及其父链不得是重解析点，同时拒绝可写的非管理员 ACL 结构，以降低 staging DLL 被替换的风险。
+6.  **便携版自启动确认 (Portable Autostart Warning)**:
+    *   如果本程序在非受保护的用户可写目录下运行，启用开机自启动时会强制弹出安全警示，必须经用户明确同意才能创建任务。
 
 ## 报告漏洞 (Reporting a Vulnerability)
 
@@ -66,6 +72,12 @@ To help security researchers and users understand our architecture:
     *   This task is strictly hardcoded to launch the specific executable path in the program folder, preventing path traversal or privilege hijacking.
 3.  **Hardware Write Safety**:
     *   To prevent hardware damage from incorrect register writes, we enforce a strict **read-only whitelist** for motherboard IDs and lighting zones. Any unsupported configuration defaults to write-protected.
+4.  **Packaged Build Isolation**:
+    *   Packaged builds strictly ignore `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` and `MAGICALGIRLGLOWDOWN_GCC_ROOT` environment variables. They only execute the trusted C# helper in their package folder, and resolve GCC exclusively from `%ProgramFiles%\GIGABYTE\Control Center` to prevent path injection/hijacking.
+5.  **Protected Data Directories**:
+    *   All helper staging folders and recovery state (`state.json`) are stored in `%ProgramData%\MagicalGirlGlowDown`. The app creates and verifies that directory on startup, checks the directory and its parent chain for reparse points, and rejects ACLs that allow writable access to non-administrative principals.
+6.  **Portable Autostart Warning**:
+    *   Enabling autostart for a portable build running outside a protected path (like `Program Files`) triggers a security warning and requires explicit confirmation.
 
 ## Reporting a Vulnerability
 

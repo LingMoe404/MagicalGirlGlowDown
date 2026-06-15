@@ -1,6 +1,4 @@
-import builtins
 import ctypes
-import sys
 from typing import Any
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
@@ -24,8 +22,24 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "timeout_dialog_label": "空闲时间 (秒):",
         
         "autostart_failed_title": "设置开机启动失败",
-        "autostart_failed_msg": "设置开机启动失败：\n{error}\n\n提示：此操作通常需要管理员权限。请尝试以管理员身份运行程序后重试。",
+        "autostart_failed_msg": (
+            "设置开机启动失败：\n{error}\n\n"
+            "提示：此操作通常需要管理员权限。请尝试以管理员身份运行程序后重试。"
+        ),
         "admin_needed": "MagicalGirlGlowDown 需要管理员权限以控制技嘉灯光。",
+        "portable_autostart_cli_warning": (
+            "安全警告：开机启动的程序保存在用户可写目录中。"
+            "请使用 --confirm-portable-autostart-risk 以确认风险并继续。"
+        ),
+        "portable_autostart_warning_title": "开机自启动安全警告",
+        "portable_autostart_warning_message": (
+            "安全警告：此程序目前保存在用户可写入的目录中。\n\n"
+            "其他能够替换此程序的进程可能会在下次登录时获得管理员权限。\n\n"
+            "建议将程序安装到 Program Files 目录下以降低安全风险。\n\n"
+            "是否仍要继续设置开机启动？"
+        ),
+        "worker_failed": "后台服务已失效",
+        "retry_worker": "重试后台服务",
     },
     "zh_TW": {
         "starting": "啟動中...",
@@ -44,11 +58,27 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "start_with_windows": "開機自動啟動",
         "exit": "退出",
         "timeout_dialog_title": "設置空閒超時",
-        "timeout_dialog_label": "空閒時間 (秒):",
+        "timeout_dialog_label": "開閒時間 (秒):",
         
         "autostart_failed_title": "設置開機啟動失敗",
-        "autostart_failed_msg": "設置開機啟動失敗：\n{error}\n\n提示：此操作通常需要管理員權限。請嘗試以管理員身份運行程序後重試。",
-        "admin_needed": "MagicalGirlGlowDown 需要管理員權限以控制技嘉燈光。",
+        "autostart_failed_msg": (
+            "設置開機啟動失敗：\n{error}\n\n"
+            "提示：此操作通常需要管理員權限。請嘗試以管理員身份運行程序後重試。"
+        ),
+        "admin_needed": "MagicalGirlGlowDown 需要管理员权限以控制技嘉燈光。",
+        "portable_autostart_cli_warning": (
+            "安全警告：開機啟動的程序保存在用戶可寫目錄中。"
+            "請使用 --confirm-portable-autostart-risk 以確認風險並繼續。"
+        ),
+        "portable_autostart_warning_title": "開機自啟動安全警告",
+        "portable_autostart_warning_message": (
+            "安全警告：此程序目前保存在用戶可寫入的目錄中。\n\n"
+            "其他能夠替換此程序的進程可能會在下次登錄時獲得管理員權限。\n\n"
+            "建議將程序安裝到 Program Files 目錄下以降低安全風險。\n\n"
+            "是否仍要繼續設置開機啟動？"
+        ),
+        "worker_failed": "後台服務已失效",
+        "retry_worker": "重試後台服務",
     },
     "en": {
         "starting": "Starting...",
@@ -70,8 +100,26 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "timeout_dialog_label": "Idle timeout (seconds):",
         
         "autostart_failed_title": "Autostart Configuration Failed",
-        "autostart_failed_msg": "Failed to configure autostart:\n{error}\n\nTip: This action usually requires administrator privileges. Please try running the application as administrator.",
+        "autostart_failed_msg": (
+            "Failed to configure autostart:\n{error}\n\n"
+            "Tip: This action usually requires administrator privileges. "
+            "Please try running the application as administrator."
+        ),
         "admin_needed": "MagicalGirlGlowDown needs administrator permission for Gigabyte lighting.",
+        "portable_autostart_cli_warning": (
+            "Security warning: The autostart executable is located in a user-writable directory. "
+            "Use --confirm-portable-autostart-risk to confirm risk and continue."
+        ),
+        "portable_autostart_warning_title": "Autostart Security Warning",
+        "portable_autostart_warning_message": (
+            "Security Warning: The executable is located in a user-writable directory.\n\n"
+            "Another process able to replace this executable "
+            "could gain administrator privileges at the next sign-in.\n\n"
+            "Installing the application under Program Files is recommended to reduce this risk.\n\n"
+            "Do you want to continue enabling autostart anyway?"
+        ),
+        "worker_failed": "Background service failed",
+        "retry_worker": "Retry background service",
     }
 }
 
@@ -81,7 +129,8 @@ def get_system_language() -> str:
         buf = ctypes.create_unicode_buffer(85)
         if ctypes.windll.kernel32.GetUserDefaultLocaleName(buf, 85) > 0:
             locale_name = buf.value.lower()
-            # Simplified Chinese: zh-CN (PRC), zh-SG (Singapore), zh-MY (Malaysia), or contains "hans"
+            # Simplified Chinese: zh-CN (PRC), zh-SG (Singapore), zh-MY (Malaysia),
+            # or contains "hans"
             if (
                 locale_name.startswith("zh-cn")
                 or locale_name.startswith("zh-sg")
@@ -89,7 +138,8 @@ def get_system_language() -> str:
                 or "hans" in locale_name
             ):
                 return "zh_CN"
-            # Traditional Chinese: zh-TW (Taiwan), zh-HK (Hong Kong), zh-MO (Macau), or contains "hant"
+            # Traditional Chinese: zh-TW (Taiwan), zh-HK (Hong Kong), zh-MO (Macau),
+            # or contains "hant"
             elif (
                 locale_name.startswith("zh-tw")
                 or locale_name.startswith("zh-hk")

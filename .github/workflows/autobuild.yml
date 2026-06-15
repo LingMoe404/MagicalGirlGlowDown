@@ -84,6 +84,12 @@ jobs:
           --output-dir=build/nuitka
           --output-filename=MagicalGirlGlowDown.exe
 
+      - name: Stamp admin manifest on application executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          powershell -ExecutionPolicy Bypass -File .\scripts\set-admin-manifest.ps1 -Path "build\nuitka\launcher.dist\MagicalGirlGlowDown.exe"
+
       - name: Prepare shared distribution
         shell: pwsh
         run: |

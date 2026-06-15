@@ -46,11 +46,13 @@
 ## ⚠️ 常见故障排除 (Troubleshooting)
 
 ### Q1: 运行技嘉控制命令行时，提示 C# 辅助进程（GigabyteHelper）错误或初始化失败
-*   **原因 1**: 本项目没有内置技嘉的驱动或 DLL 文件，它依赖您系统上安装好的官方 **Gigabyte Control Center (GCC)**。如果未安装 GCC，或者 GCC 文件受损，辅助进程将无法运行。
-*   **原因 2**: 没有以管理员权限运行命令行。技嘉官方 SDK 读取主板 ID 必须拥有提权。
+*   **原因 3**: `ProgramData\MagicalGirlGlowDown\GigabyteHelperStage` 暂存路径验证失败。如果此暂存路径（或其父目录）被恶意创建为重解析点（符号链接/连接点），或者目录 ACL 允许非管理员写入，辅助程序将出于安全考虑拒绝运行并抛出 `protected_stage_invalid` 或 `protected_stage_unavailable` 异常。
+*   **原因 4**: 使用了打包版本，但设置了 `MAGICALGIRLGLOWDOWN_GCC_ROOT` 环境变量。打包版会强制忽略此覆盖并仅在 `C:\Program Files\GIGABYTE\Control Center` 下搜寻 GCC。
 *   **排查步骤**:
     1. 确保 GCC 在 Windows 中能正常调节灯光。
-    2. 打开管理员权限的 PowerShell，尝试直接运行辅助可执行文件以捕获 C# 的底层异常：
+    2. 检查 `%ProgramData%\MagicalGirlGlowDown` 是否为重解析点，并确认其 ACL 不会把写入权限授予普通用户。
+    3. 如果在源码运行环境下开发，可以使用环境变量指定自定义 helper 和 GCC 路径，但需物理机管理员权限启动，并留意控制台输出的 Override 警告日志。
+    4. 打开管理员权限的 PowerShell，尝试直接运行辅助可执行文件以捕获 C# 的底层异常：
        ```powershell
        .\src\magical_girl_glow_down\gigabyte_helper\MagicalGirlGlowDown.GigabyteHelper.exe probe
        ```
@@ -71,6 +73,12 @@
 *   **排查步骤**:
     1. 确认 Nollie 官方的 `NollieRGB` 软件是否能正常读写设备。
     2. 在设备管理器中检查 Nollie 控制器的 USB 硬件 ID，确认其 VID 是否为 `0483` 等标准白名单 ID。
+
+### Q4: 托盘状态显示“后台服务已失效”
+*   **原因**: 监听游戏手柄、键盘鼠标事件或与底层主板服务通信时发生致命异常（如底层的 Win32 API 报错、HID 端口被占用）。
+*   **排查步骤**:
+    1. 在托盘菜单右键点击“重试后台服务”。
+    2. 若重试依然失败，请检查托盘程序的日志输出（默认为控制台或日志文件），捕获致命异常栈（Traceback）。
 
 ---
 
@@ -113,11 +121,13 @@ Immediately blackouts all 7 validated zones and restores them after 5 seconds. R
 ## ⚠️ Troubleshooting FAQ
 
 ### Q1: GigabyteHelper process fails to initialize or crashes
-*   **Reason 1**: The helper process requires **Gigabyte Control Center (GCC)** to be installed locally to load its proprietary libraries.
-*   **Reason 2**: The CLI session does not have Administrator privileges.
+*   **Reason 3**: Staging path security verification failed. If `ProgramData\MagicalGirlGlowDown\GigabyteHelperStage` (or its parents) is configured as a reparse point (symlink/junction) or writable by non-administrative principals, the C# helper throws a `protected_stage_invalid` or `protected_stage_unavailable` exception.
+*   **Reason 4**: A packaged build is being run, but `MAGICALGIRLGLOWDOWN_GCC_ROOT` is configured. Packaged builds strictly ignore overrides and look for GCC only under `C:\Program Files\GIGABYTE\Control Center`.
 *   **Triage**:
-    1. Confirm GCC can control your motherboard lights.
-    2. Run the executable directly in an elevated PowerShell to capture the .NET exception:
+    1. Verify GCC controls motherboard lights.
+    2. Check that `%ProgramData%\MagicalGirlGlowDown` is not a reparse point and that its ACL does not grant write access to ordinary users.
+    3. If running from source, you can use environment overrides but keep an eye out for override warning logs.
+    4. Run the executable directly in an elevated PowerShell to capture the .NET exception:
        ```powershell
        .\src\magical_girl_glow_down\gigabyte_helper\MagicalGirlGlowDown.GigabyteHelper.exe probe
        ```
@@ -134,3 +144,10 @@ Immediately blackouts all 7 validated zones and restores them after 5 seconds. R
 ### Q3: Nollie controllers do not turn off
 *   **Reason**: The device is in bootloader mode, or its USB VID/PID is not whitelisted in `protocol.py`.
 *   **Triage**: Ensure the official NollieRGB client works correctly with the device.
+
+### Q4: Tray icon displays "Background service failed"
+*   **Reason**: A fatal exception occurred while polling controller/keyboard/mouse events or writing lighting values.
+*   **Triage**:
+    1. Right-click the tray icon and select "Retry background service".
+    2. If it fails again, check the logs/console output to capture the traceback.
+

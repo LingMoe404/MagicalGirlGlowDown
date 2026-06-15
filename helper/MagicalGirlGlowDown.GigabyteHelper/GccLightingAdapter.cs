@@ -115,6 +115,7 @@ public sealed class GccLightingAdapter(
         {
             throw new AdapterException("invalid_snapshot", "Snapshot vendor state is invalid.");
         }
+        ValidateVendorState(vendorState);
         return snapshot;
     }
 
@@ -209,4 +210,59 @@ public sealed class GccLightingAdapter(
                 $"GCC method {method} failed with result {result}.");
         }
     }
+    private const int MaximumVendorStateBytes = 1_048_576;
+    private const int MaximumVendorStateDepth = 32;
+
+    private void ValidateVendorState(JsonElement vendorState)
+    {
+        if (vendorState.ValueKind != JsonValueKind.Array ||
+            vendorState.GetArrayLength() != board.ZoneIds.Count)
+        {
+            throw new AdapterException(
+                "invalid_snapshot",
+                "Snapshot vendor state does not match the validated zone count.");
+        }
+        if (System.Text.Encoding.UTF8.GetByteCount(vendorState.GetRawText()) >
+            MaximumVendorStateBytes)
+        {
+            throw new AdapterException(
+                "invalid_snapshot",
+                "Snapshot vendor state exceeds the size limit.");
+        }
+        foreach (var item in vendorState.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                throw new AdapterException(
+                    "invalid_snapshot",
+                    "Every vendor state item must be an object.");
+            }
+            ValidateDepth(item, 1);
+        }
+    }
+
+    private static void ValidateDepth(JsonElement value, int depth)
+    {
+        if (depth > MaximumVendorStateDepth)
+        {
+            throw new AdapterException(
+                "invalid_snapshot",
+                "Snapshot vendor state exceeds the nesting limit.");
+        }
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in value.EnumerateObject())
+            {
+                ValidateDepth(property.Value, depth + 1);
+            }
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in value.EnumerateArray())
+            {
+                ValidateDepth(item, depth + 1);
+            }
+        }
+    }
 }
+

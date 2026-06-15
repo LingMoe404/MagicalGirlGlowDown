@@ -188,6 +188,19 @@ dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -c Release -v minima
 
 协议分析记录请参阅 [Nollie 协议说明](docs/protocol-notes.md)，技嘉实机验证过程请参阅 [技嘉验证记录](docs/gigabyte-validation.md)。
 
+## 安全与加固运行
+
+为了确保以管理员权限运行时系统与硬件的安全性，本工具实施了以下加固设计：
+
+1. **权限模型**：整个托盘程序及 C# 辅助进程均以管理员权限运行。
+2. **打包版本边界**：打包的可执行文件（Packaged Build）会严格忽略任何 helper 或 GCC 环境变量重定向路径（如 `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` 和 `MAGICALGIRLGLOWDOWN_GCC_ROOT`），仅加载程序自身目录内的辅助进程，且仅在固定的 `%ProgramFiles%\GIGABYTE\Control Center` 下探测和调用 GCC。
+3. **源码运行环境**：源码模式下允许通过环境变量进行重定向，但每次使用重定向路径时都会在日志中输出管理员级覆盖路径的警告。
+4. **受保护的存储与暂存区**：硬件恢复状态（`state.json`）和技嘉暂存目录位于全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。程序会在启动时创建并验证该目录，检查目录本身及其父链是否为重解析点，并拒绝可写的非管理员 ACL 结构，降低 staging DLL 被替换的风险。
+5. **便携版开机启动安全确认**：当使用便携版（即程序不在 `Program Files` 目录下）启用开机自启动时，UI 和命令行会提示安全风险，需要用户确认后才会继续启用。
+6. **故障隔离与自愈**：
+   * **待机快照留存**：如果 GCC 正在运行导致灯光恢复失败，快照会被标记为 `pending_restore` 并被安全留存，在 GCC 关闭后自动重试恢复，绝不因 handoff 冲突而丢失快照。
+   * **后台服务故障手动重试**：当后台输入监听服务发生致命异常时，会优雅捕获并通知托盘菜单，显示“后台服务已失效”，允许用户在托盘菜单中手动点击“重试后台服务”以拉起新实例。
+
 ## 使用提醒
 
 1. 首次使用前，建议先在 NollieRGB 或 GCC 中备份当前灯效配置。

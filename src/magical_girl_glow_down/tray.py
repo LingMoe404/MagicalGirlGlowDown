@@ -5,6 +5,7 @@ import logging
 import subprocess
 import threading
 import time
+from collections.abc import Callable
 from ctypes import wintypes
 from pathlib import Path
 from typing import cast
@@ -15,25 +16,27 @@ from PySide6.QtWidgets import (
     QApplication,
     QInputDialog,
     QMenu,
+    QMessageBox,
     QSystemTrayIcon,
     QWidget,
 )
 
 from .app_guard import is_gcc_running, is_original_app_running
-from .autostart import AutostartManager, WindowsTaskScheduler
+from .autostart import AutostartManager, WindowsTaskScheduler, requires_portable_confirmation
 from .branding import APP_DISPLAY_NAME, APP_NAME, icon_path
 from .discovery import discover_controllers
 from .domain import AppSettings
 from .gigabyte import GigabyteError, GigabyteHelperClient, GigabyteLightingTarget
+from .i18n import t
 from .lighting import LightingTarget
 from .protocol import NollieController, NollieLightingTarget
 from .runtime import runtime_command
-from .i18n import t
 from .service import LightingService
 from .storage import StateStore
 from .windows_input import (
     GameControllerMonitor,
     keyboard_mouse_idle_seconds,
+    read_raw_input_report,
     register_game_controller_raw_input,
 )
 from .worker import WorkerPolicy
@@ -44,6 +47,7 @@ WM_INPUT = 0x00FF
 
 class StatusBridge(QObject):
     status_changed = Signal(str)
+    worker_failed = Signal(str)
 
 
 class RawInputFilter(QAbstractNativeEventFilter):
@@ -58,7 +62,10 @@ class RawInputFilter(QAbstractNativeEventFilter):
     ) -> tuple[bool, int]:
         msg = wintypes.MSG.from_address(int(message))
         if msg.message == WM_INPUT:
-            self.monitor.record_raw_input()
+            raw = read_raw_input_report(int(msg.lParam))
+            if raw is not None:
+                device, report = raw
+                self.monitor.record_raw_report(device, report)
         return False, 0
 
 
@@ -69,19 +76,48 @@ class Worker(threading.Thread):
         data_dir: Path,
         monitor: GameControllerMonitor,
         bridge: StatusBridge,
+        state_dir: Path | None = None,
     ) -> None:
         super().__init__(name="MagicalGirlGlowDown-worker", daemon=True)
         self.idle_seconds = idle_seconds
         self.monitor = monitor
         self.bridge = bridge
-        self.service = LightingService(StateStore(data_dir))
+        self.service = LightingService(StateStore(data_dir, state_dir))
         self.policy = WorkerPolicy(self.service)
         self.stop_event = threading.Event()
         self.pause_event = threading.Event()
         self.restore_event = threading.Event()
 
     def run(self) -> None:
-        asyncio.run(self._run())
+        try:
+            asyncio.run(self._run())
+        except Exception as exc:
+            log.exception("Lighting worker terminated")
+            self.bridge.worker_failed.emit(str(exc))
+
+    async def _transition_gigabyte_target(
+        self,
+        target: GigabyteLightingTarget | None,
+        *,
+        gcc_running: bool,
+        was_gcc_running: bool,
+        now: float,
+        next_scan: float,
+    ) -> tuple[GigabyteLightingTarget | None, float]:
+        if gcc_running:
+            if target is not None:
+                await self.service.restore([target])
+                await target.close()
+            return None, now + 2
+
+        if target is None and now >= next_scan:
+            target = await self._discover_gigabyte_target()
+            next_scan = now + 5
+
+        if was_gcc_running and target is not None:
+            await self.service.restore([target])
+
+        return target, next_scan
 
     async def _run(self) -> None:
         controllers: list[NollieController] = []
@@ -109,14 +145,13 @@ class Worker(threading.Thread):
                         NollieLightingTarget(controller) for controller in controllers
                     ]
                     last_scan = now
-                if gcc_is_running or was_gcc_running:
-                    if gigabyte_target is not None:
-                        await gigabyte_target.close()
-                    gigabyte_target = None
-                    next_gigabyte_scan = now + 2
-                elif gigabyte_target is None and now >= next_gigabyte_scan:
-                    gigabyte_target = await self._discover_gigabyte_target()
-                    next_gigabyte_scan = now + 5
+                gigabyte_target, next_gigabyte_scan = await self._transition_gigabyte_target(
+                    gigabyte_target,
+                    gcc_running=gcc_is_running,
+                    was_gcc_running=was_gcc_running,
+                    now=now,
+                    next_scan=next_gigabyte_scan,
+                )
                 self.monitor.poll()
                 active = (
                     keyboard_mouse_idle_seconds() < self.idle_seconds
@@ -154,10 +189,6 @@ class Worker(threading.Thread):
                         controller.close()
                     controllers = []
                     nollie_targets = []
-                if gcc_is_running:
-                    if gigabyte_target is not None:
-                        await gigabyte_target.close()
-                    gigabyte_target = None
                 was_gcc_running = gcc_is_running
                 self.bridge.status_changed.emit(status)
                 await asyncio.sleep(0.25)
@@ -189,6 +220,28 @@ class Worker(threading.Thread):
         )
 
 
+class WorkerController:
+    def __init__(self, factory: Callable[[], Worker]) -> None:
+        self._factory = factory
+        self.worker: Worker | None = None
+
+    def start(self) -> Worker:
+        if self.worker is not None and self.worker.is_alive():
+            raise RuntimeError("lighting worker is already running")
+        self.worker = self._factory()
+        self.worker.start()
+        return self.worker
+
+    def restart(self) -> Worker:
+        if self.worker is not None and self.worker.is_alive():
+            raise RuntimeError("lighting worker is already running")
+        return self.start()
+
+    def stop(self) -> None:
+        if self.worker is not None:
+            self.worker.stop_event.set()
+
+
 def _fallback_icon(color: str) -> QIcon:
     pixmap = QPixmap(32, 32)
     pixmap.fill(QColor("transparent"))
@@ -205,14 +258,19 @@ def _icon(color: str) -> QIcon:
     return icon if not icon.isNull() else _fallback_icon(color)
 
 
-def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
+def run_tray(
+    idle_seconds: float | None,
+    settings_dir: Path,
+    state_dir: Path | None = None,
+) -> int:
     instance = QApplication.instance()
     app = cast(QApplication, instance) if instance else QApplication([])
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName(APP_NAME)
     app.setApplicationDisplayName(APP_DISPLAY_NAME)
     app.setWindowIcon(_icon("#00a9b7"))
-    store = StateStore(data_dir)
+    store = StateStore(settings_dir, state_dir)
+    store.migrate_legacy_state()
     settings = store.load_settings()
     if idle_seconds is not None:
         settings = AppSettings(
@@ -225,7 +283,17 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
         store.save_settings(settings)
     monitor = GameControllerMonitor()
     bridge = StatusBridge()
-    worker = Worker(settings.idle_seconds, data_dir, monitor, bridge)
+
+    def worker_factory() -> Worker:
+        return Worker(
+            settings.idle_seconds,
+            settings_dir,
+            monitor,
+            bridge,
+            state_dir=state_dir,
+        )
+
+    worker_controller = WorkerController(worker_factory)
 
     host = QWidget()
     host.setWindowTitle(f"{APP_NAME} input host")
@@ -240,6 +308,8 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
     menu = QMenu()
     status_action = QAction(t("starting"), menu)
     status_action.setEnabled(False)
+    retry_action = QAction(t("retry_worker"), menu)
+    retry_action.setEnabled(False)
     pause_action = QAction(t("pause"), menu)
     restore_action = QAction(t("restore_now"), menu)
     settings_action = QAction(t("set_timeout"), menu)
@@ -250,6 +320,7 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
     autostart = AutostartManager(WindowsTaskScheduler(), command)
     autostart_action.setChecked(autostart.enabled())
     menu.addAction(status_action)
+    menu.addAction(retry_action)
     menu.addSeparator()
     menu.addAction(pause_action)
     menu.addAction(restore_action)
@@ -282,32 +353,51 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
         tray.setIcon(_icon("#777777" if status.startswith("Paused") else "#00a9b7"))
 
     def toggle_pause() -> None:
-        if worker.pause_event.is_set():
-            worker.pause_event.clear()
+        w = worker_controller.worker
+        if w is None:
+            return
+        if w.pause_event.is_set():
+            w.pause_event.clear()
             pause_action.setText(t("pause"))
         else:
-            worker.pause_event.set()
-            worker.restore_event.set()
+            w.pause_event.set()
+            w.restore_event.set()
             pause_action.setText(t("resume"))
 
+    def restore_now() -> None:
+        w = worker_controller.worker
+        if w is not None:
+            w.restore_event.set()
+
     def shutdown() -> None:
-        worker.stop_event.set()
+        worker_controller.stop()
         tray.hide()
         QTimer.singleShot(500, app.quit)
 
     def change_timeout() -> None:
+        nonlocal settings
+        w = worker_controller.worker
+        current_idle = w.idle_seconds if w is not None else settings.idle_seconds
         value, accepted = QInputDialog.getDouble(
             None,
             t("timeout_dialog_title"),
             t("timeout_dialog_label"),
-            worker.idle_seconds,
+            current_idle,
             1,
             86400,
             1,
         )
         if not accepted:
             return
-        worker.idle_seconds = value
+        if w is not None:
+            w.idle_seconds = value
+        settings = AppSettings(
+            idle_seconds=value,
+            axis_dead_zone=settings.axis_dead_zone,
+            axis_change_threshold=settings.axis_change_threshold,
+            enabled=settings.enabled,
+            autostart=settings.autostart,
+        )
         current = store.load_settings()
         store.save_settings(
             AppSettings(
@@ -320,6 +410,19 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
         )
 
     def toggle_autostart(checked: bool) -> None:
+        if checked and requires_portable_confirmation(Path(runtime_command()[0])):
+            answer = QMessageBox.warning(
+                None,
+                t("portable_autostart_warning_title"),
+                t("portable_autostart_warning_message"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                autostart_action.blockSignals(True)
+                autostart_action.setChecked(False)
+                autostart_action.blockSignals(False)
+                return
         try:
             if checked:
                 autostart.enable()
@@ -340,22 +443,39 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
             autostart_action.setChecked(not checked)
             autostart_action.blockSignals(False)
 
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(
                 None,
                 t("autostart_failed_title"),
                 t("autostart_failed_msg", error=str(e)),
             )
 
+    def handle_worker_failure(message: str) -> None:
+        log.error("Background service failed: %s", message)
+        status_action.setText(t("worker_failed"))
+        tray.setToolTip(f"{APP_DISPLAY_NAME} - {t('worker_failed')}")
+        retry_action.setEnabled(True)
+
+    def retry_worker() -> None:
+        retry_action.setEnabled(False)
+        status_action.setText(t("starting"))
+        try:
+            worker_controller.restart()
+        except RuntimeError as exc:
+            log.warning("Could not restart worker: %s", exc)
+            retry_action.setEnabled(True)
+
     bridge.status_changed.connect(update_status)
+    bridge.worker_failed.connect(handle_worker_failure)
     pause_action.triggered.connect(toggle_pause)
-    restore_action.triggered.connect(worker.restore_event.set)
+    restore_action.triggered.connect(restore_now)
     settings_action.triggered.connect(change_timeout)
     autostart_action.toggled.connect(toggle_autostart)
+    retry_action.triggered.connect(retry_worker)
     exit_action.triggered.connect(shutdown)
     tray.show()
-    worker.start()
+    worker_controller.start()
     result = app.exec()
-    worker.stop_event.set()
-    worker.join(timeout=3)
+    worker_controller.stop()
+    if worker_controller.worker is not None:
+        worker_controller.worker.join(timeout=3)
     return result

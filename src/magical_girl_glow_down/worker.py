@@ -38,7 +38,7 @@ class WorkerPolicy:
         if blocked:
             await self.service.restore(blocked)
         for backend in blocked_backends:
-            self.service.release_backend(backend)
+            self.service.release_backend_if_recovered(backend)
         if allowed:
             await self.service.dim(allowed)
 

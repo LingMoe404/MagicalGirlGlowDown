@@ -105,6 +105,17 @@ class LightingService:
             key for key, snapshot in self.snapshots.items() if snapshot.identity.backend == backend
         )
 
+    def has_pending_restore_for_backend(self, backend: str) -> bool:
+        return any(
+            snapshot.pending_restore and snapshot.identity.backend == backend
+            for snapshot in self.snapshots.values()
+        )
+
+    def release_backend_if_recovered(self, backend: str) -> None:
+        if self.has_pending_restore_for_backend(backend):
+            return
+        self.release_backend(backend)
+
     def _release_keys(self, keys: Iterable[str]) -> None:
         removed = {key: self.snapshots.pop(key) for key in tuple(keys) if key in self.snapshots}
         if not removed:

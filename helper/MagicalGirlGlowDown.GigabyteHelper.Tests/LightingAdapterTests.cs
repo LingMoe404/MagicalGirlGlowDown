@@ -116,7 +116,14 @@ public sealed class LightingAdapterTests
             () => session,
             () => gccRunning);
 
-    private static object Snapshot() => new
+    private static JsonElement Request(object snapshot) =>
+        JsonSerializer.SerializeToElement(new
+        {
+            boardFingerprint = "board-A",
+            snapshot,
+        });
+
+    private static object Snapshot(string vendorState = """[{"briLv":8}]""") => new
     {
         schema = 1,
         boardFingerprint = "board-A",
@@ -125,8 +132,48 @@ public sealed class LightingAdapterTests
             ["RgbMotherboard"] = "1.0.0.0",
         },
         zones = new[] { "profile-0" },
-        vendorState = JsonSerializer.Deserialize<JsonElement>("""[{"briLv":8}]"""),
+        vendorState = JsonSerializer.Deserialize<JsonElement>(vendorState),
     };
+
+    [Fact]
+    public async Task RestoreRejectsVendorStateWithWrongZoneCount()
+    {
+        var session = new FakeLightingSession("""[{"briLv":8}]""");
+        var adapter = CreateAdapter(session);
+        var snapshot = Snapshot(vendorState: "[]");
+
+        var error = await Assert.ThrowsAsync<AdapterException>(
+            () => adapter.RestoreAsync(Request(snapshot)));
+
+        Assert.Equal("invalid_snapshot", error.Code);
+        Assert.Null(session.AppliedState);
+    }
+
+    [Fact]
+    public async Task RestoreRejectsNonObjectVendorStateItems()
+    {
+        var session = new FakeLightingSession("""[{"briLv":8}]""");
+        var adapter = CreateAdapter(session);
+        var snapshot = Snapshot(vendorState: "[7]");
+
+        var error = await Assert.ThrowsAsync<AdapterException>(
+            () => adapter.RestoreAsync(Request(snapshot)));
+
+        Assert.Equal("invalid_snapshot", error.Code);
+    }
+
+    [Fact]
+    public async Task RestoreRejectsOversizedVendorState()
+    {
+        var session = new FakeLightingSession("""[{"briLv":8}]""");
+        var adapter = CreateAdapter(session);
+        var oversized = "[{\"value\":\"" + new string('x', 1_048_577) + "\"}]";
+
+        var error = await Assert.ThrowsAsync<AdapterException>(
+            () => adapter.RestoreAsync(Request(Snapshot(oversized))));
+
+        Assert.Equal("invalid_snapshot", error.Code);
+    }
 
     private sealed class FakeLightingSession(string state) : IGccLightingSession
     {
@@ -150,3 +197,4 @@ public sealed class LightingAdapterTests
         }
     }
 }
+

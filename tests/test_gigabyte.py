@@ -12,6 +12,7 @@ from magical_girl_glow_down.gigabyte import (
     GigabyteError,
     GigabyteHelperClient,
     GigabyteLightingTarget,
+    find_helper_command,
 )
 from magical_girl_glow_down.lighting import TargetIdentity
 
@@ -192,3 +193,33 @@ async def test_lighting_target_forwards_snapshot_blackout_and_restore(
         json.loads(line)["operation"] for line in log_path.read_text(encoding="utf-8").splitlines()
     ]
     assert operations == ["snapshot", "blackout", "restore"]
+
+
+def test_packaged_runtime_ignores_helper_override(monkeypatch, tmp_path) -> None:
+    override = tmp_path / "attacker.exe"
+    override.write_bytes(b"not an executable")
+    monkeypatch.setenv("MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER", str(override))
+    monkeypatch.setattr("magical_girl_glow_down.gigabyte.is_compiled", lambda: True)
+    monkeypatch.setattr(
+        "magical_girl_glow_down.gigabyte.Path.exists",
+        lambda path: str(path).endswith("MagicalGirlGlowDown.GigabyteHelper.exe"),
+    )
+
+    command = find_helper_command()
+
+    assert command != (str(override),)
+    assert command[0].endswith("MagicalGirlGlowDown.GigabyteHelper.exe")
+
+
+def test_source_runtime_allows_helper_and_gcc_overrides(monkeypatch, caplog) -> None:
+    monkeypatch.setenv("MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER", r"C:\dev\helper.exe")
+    monkeypatch.setenv("MAGICALGIRLGLOWDOWN_GCC_ROOT", r"D:\dev\GCC")
+    monkeypatch.setattr("magical_girl_glow_down.gigabyte.is_compiled", lambda: False)
+
+    assert find_helper_command() == (
+        r"C:\dev\helper.exe",
+        "--gcc-root",
+        r"D:\dev\GCC",
+    )
+    assert "administrator-level development override" in caplog.text
+

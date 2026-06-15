@@ -85,9 +85,18 @@ class GameControllerMonitor:
     _xinput: Any | None = field(default_factory=_load_xinput)
     _xinput_packets: dict[int, int] = field(default_factory=dict)
     _winmm_states: dict[int, tuple[int, ...]] = field(default_factory=dict)
+    _raw_reports: dict[int, bytes] = field(default_factory=dict)
 
     def record_raw_input(self) -> None:
         self.last_activity = time.monotonic()
+
+    def record_raw_report(self, device: int, report: bytes) -> bool:
+        previous = self._raw_reports.get(device)
+        self._raw_reports[device] = report
+        if previous == report:
+            return False
+        self.last_activity = time.monotonic()
+        return True
 
     def poll(self) -> bool:
         active = self._poll_xinput() | self._poll_winmm()
@@ -163,3 +172,84 @@ def register_game_controller_raw_input(hwnd: int) -> None:
         ctypes.sizeof(RAWINPUTDEVICE),
     ):
         raise ctypes.WinError()
+
+
+RID_INPUT = 0x10000003
+RIM_TYPEHID = 2
+UINT_ERROR = 0xFFFFFFFF
+RAW_INPUT_API_ARGUMENTS = (
+    wintypes.HANDLE,
+    wintypes.UINT,
+    wintypes.LPVOID,
+    ctypes.POINTER(wintypes.UINT),
+    wintypes.UINT,
+)
+
+
+def _get_raw_input_data() -> Any:
+    function: Any = ctypes.windll.user32.GetRawInputData
+    if getattr(function, "argtypes", None) != list(RAW_INPUT_API_ARGUMENTS):
+        function.argtypes = list(RAW_INPUT_API_ARGUMENTS)
+    function.restype = wintypes.UINT
+    return function
+
+
+class RAWINPUTHEADER(ctypes.Structure):
+    _fields_ = [
+        ("dwType", wintypes.DWORD),
+        ("dwSize", wintypes.DWORD),
+        ("hDevice", wintypes.HANDLE),
+        ("wParam", wintypes.WPARAM),
+    ]
+
+
+class RAWHID_PREFIX(ctypes.Structure):
+    _fields_ = [
+        ("dwSizeHid", wintypes.DWORD),
+        ("dwCount", wintypes.DWORD),
+    ]
+
+
+def parse_raw_hid_buffer(raw: bytes) -> tuple[int, bytes] | None:
+    header_size = ctypes.sizeof(RAWINPUTHEADER)
+    prefix_size = ctypes.sizeof(RAWHID_PREFIX)
+    if len(raw) < header_size + prefix_size:
+        return None
+    header = RAWINPUTHEADER.from_buffer_copy(raw[:header_size])
+    if header.dwType != RIM_TYPEHID:
+        return None
+    prefix = RAWHID_PREFIX.from_buffer_copy(
+        raw[header_size : header_size + prefix_size]
+    )
+    report_size = int(prefix.dwSizeHid) * int(prefix.dwCount)
+    start = header_size + prefix_size
+    end = start + report_size
+    if report_size <= 0 or end > len(raw):
+        return None
+    return int(header.hDevice or 0), raw[start:end]
+
+
+def read_raw_input_report(lparam: int) -> tuple[int, bytes] | None:
+    size = wintypes.UINT()
+    header_size = ctypes.sizeof(RAWINPUTHEADER)
+    get_raw_input_data = _get_raw_input_data()
+    result = get_raw_input_data(
+        wintypes.HANDLE(lparam),
+        RID_INPUT,
+        None,
+        ctypes.byref(size),
+        header_size,
+    )
+    if result == UINT_ERROR or size.value == 0:
+        return None
+    buffer = ctypes.create_string_buffer(size.value)
+    result = get_raw_input_data(
+        wintypes.HANDLE(lparam),
+        RID_INPUT,
+        buffer,
+        ctypes.byref(size),
+        header_size,
+    )
+    if result == UINT_ERROR:
+        return None
+    return parse_raw_hid_buffer(bytes(buffer.raw[: size.value]))

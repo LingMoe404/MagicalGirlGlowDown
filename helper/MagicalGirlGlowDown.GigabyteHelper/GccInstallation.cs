@@ -15,19 +15,28 @@ public sealed record GccInstallation(string Root)
 
     public string SmbControlPath => Path.Combine(Root, "SMBCtrl.dll");
 
-    public static GccInstallation Locate()
+    public static string DefaultRoot(string programFiles) =>
+        Path.Combine(programFiles, "GIGABYTE", "Control Center");
+
+    public static GccInstallation FromRoot(string root) => Validate(new GccInstallation(root));
+
+    public static GccInstallation Locate(string? developmentRoot = null)
     {
-        var configured = Environment.GetEnvironmentVariable("MAGICALGIRLGLOWDOWN_GCC_ROOT");
-        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-        var root = configured ?? Path.Combine(programFiles, "GIGABYTE", "Control Center");
-        var installation = new GccInstallation(root);
+        var root = developmentRoot ?? DefaultRoot(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles));
+        return Validate(new GccInstallation(root));
+    }
+
+    private static GccInstallation Validate(GccInstallation installation)
+    {
         if (!Directory.Exists(installation.MotherboardLibraryDirectory) ||
             !File.Exists(installation.ConfigurationPath))
         {
             throw new AdapterException(
                 "gcc_not_found",
-                $"A compatible GCC installation was not found at {root}.");
+                $"A compatible GCC installation was not found at {installation.Root}.");
         }
         return installation;
     }
+
 }
