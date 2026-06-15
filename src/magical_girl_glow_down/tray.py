@@ -36,6 +36,7 @@ from .windows_input import (
     GameControllerMonitor,
     keyboard_mouse_idle_seconds,
     register_game_controller_raw_input,
+    read_raw_input_report,
 )
 from .worker import WorkerPolicy
 
@@ -59,7 +60,10 @@ class RawInputFilter(QAbstractNativeEventFilter):
     ) -> tuple[bool, int]:
         msg = wintypes.MSG.from_address(int(message))
         if msg.message == WM_INPUT:
-            self.monitor.record_raw_input()
+            raw = read_raw_input_report(int(msg.lParam))
+            if raw is not None:
+                device, report = raw
+                self.monitor.record_raw_report(device, report)
         return False, 0
 
 
