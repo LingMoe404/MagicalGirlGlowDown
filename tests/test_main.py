@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from magical_girl_glow_down.main import app_data_dir, build_parser
+from magical_girl_glow_down.main import app_data_dir, build_parser, main
+
 
 
 def test_cli_parses_simulation_options() -> None:
@@ -49,4 +50,26 @@ def test_idle_seconds_cli_rejects_invalid_values(value: str) -> None:
     parser = build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["--simulate", "--idle-seconds", value])
+
+
+def test_cli_portable_autostart_requires_explicit_risk_flag(
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(
+        "magical_girl_glow_down.main.runtime_command",
+        lambda arguments=(): (r"C:\Users\Alice\Downloads\MagicalGirlGlowDown.exe",),
+    )
+    monkeypatch.setattr(
+        "magical_girl_glow_down.main.requires_portable_confirmation",
+        lambda executable: True,
+    )
+    monkeypatch.setattr(
+        "magical_girl_glow_down.privilege.is_elevated",
+        lambda: True,
+    )
+
+    assert main(["--install-autostart"]) == 2
+    assert "confirm-portable-autostart-risk" in capsys.readouterr().err
+
 

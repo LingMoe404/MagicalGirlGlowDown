@@ -8,7 +8,9 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
+
 
 from .branding import (
     APP_NAME,
@@ -16,6 +18,7 @@ from .branding import (
     DATA_DIR_NAME,
     set_windows_app_id,
 )
+from .autostart import requires_portable_confirmation
 from .runtime import runtime_command
 from .simulator import run_simulation
 
@@ -41,9 +44,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--simulate", action="store_true", help="run without HID hardware")
     parser.add_argument("--cycles", type=int, default=1)
     parser.add_argument("--idle-seconds", type=_positive_finite_float)
-
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--install-autostart", action="store_true")
+    parser.add_argument(
+        "--confirm-portable-autostart-risk",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--remove-autostart", action="store_true")
     parser.add_argument(
         "--gigabyte-probe",
@@ -125,8 +132,8 @@ async def _gigabyte_test_all(restore_after: float) -> int:
     return 0
 
 
-def main() -> int:
-    args = build_parser().parse_args()
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -187,11 +194,23 @@ def main() -> int:
     if args.gigabyte_test_all:
         return asyncio.run(_gigabyte_test_all(args.restore_after))
     if args.install_autostart or args.remove_autostart:
-        from .autostart import AutostartManager, WindowsTaskScheduler
+        from .autostart import (
+            AutostartManager,
+            WindowsTaskScheduler,
+            requires_portable_confirmation,
+        )
+        from .i18n import t
 
         command = subprocess.list2cmdline(runtime_command())
         manager = AutostartManager(WindowsTaskScheduler(), command)
         if args.install_autostart:
+            executable = Path(runtime_command()[0])
+            if (
+                requires_portable_confirmation(executable)
+                and not args.confirm_portable_autostart_risk
+            ):
+                print(t("portable_autostart_cli_warning"), file=sys.stderr)
+                return 2
             manager.enable()
             print(f"{APP_NAME} autostart enabled")
         else:

@@ -15,12 +15,13 @@ from PySide6.QtWidgets import (
     QApplication,
     QInputDialog,
     QMenu,
+    QMessageBox,
     QSystemTrayIcon,
     QWidget,
 )
 
 from .app_guard import is_gcc_running, is_original_app_running
-from .autostart import AutostartManager, WindowsTaskScheduler
+from .autostart import AutostartManager, WindowsTaskScheduler, requires_portable_confirmation
 from .branding import APP_DISPLAY_NAME, APP_NAME, icon_path
 from .discovery import discover_controllers
 from .domain import AppSettings
@@ -332,6 +333,19 @@ def run_tray(
         )
 
     def toggle_autostart(checked: bool) -> None:
+        if checked and requires_portable_confirmation(Path(runtime_command()[0])):
+            answer = QMessageBox.warning(
+                None,
+                t("portable_autostart_warning_title"),
+                t("portable_autostart_warning_message"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                autostart_action.blockSignals(True)
+                autostart_action.setChecked(False)
+                autostart_action.blockSignals(False)
+                return
         try:
             if checked:
                 autostart.enable()
@@ -352,7 +366,6 @@ def run_tray(
             autostart_action.setChecked(not checked)
             autostart_action.blockSignals(False)
 
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(
                 None,
                 t("autostart_failed_title"),

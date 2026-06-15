@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Sequence
+from pathlib import Path
 from typing import Protocol
 
 from .branding import APP_NAME
+from .security_paths import is_protected_install_path
 
 TASK_NAME = APP_NAME
+
+
+def requires_portable_confirmation(
+    executable: Path,
+    roots: Sequence[Path] | None = None,
+) -> bool:
+    return not is_protected_install_path(executable, roots)
+
 
 
 class TaskScheduler(Protocol):
