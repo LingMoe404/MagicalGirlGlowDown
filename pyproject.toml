@@ -3,6 +3,7 @@ name = "magical-girl-glow-down"
 version = "0.1.0"
 description = "Windows idle lighting manager for Nollie and Gigabyte RGB hardware"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.12.10,<3.13"
 dependencies = [
   "hidapi>=0.14.0.post4",

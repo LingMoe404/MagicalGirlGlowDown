@@ -66,7 +66,7 @@
 
 ## ⚖️ 开源协议
 
-提交贡献即表示你同意你的代码将遵循项目现有的开源协议进行发布。
+提交贡献即表示你同意你的代码将遵循项目现有的 **GPL-3.0** 开源协议进行发布。
 
 ## 💬 联系方式
 
@@ -146,7 +146,7 @@ This project uses [uv](https://github.com/astral-sh/uv) to manage Python depende
 
 ## ⚖️ License
 
-By submitting a contribution, you agree that your code will be released under the project's existing license.
+By submitting a contribution, you agree that your code will be released under the project's existing **GPL-3.0** license.
 
 ## 💬 Contact
 
