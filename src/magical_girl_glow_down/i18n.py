@@ -38,6 +38,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "建议将程序安装到 Program Files 目录下以降低安全风险。\n\n"
             "是否仍要继续设置开机启动？"
         ),
+        "worker_failed": "后台服务已失效",
+        "retry_worker": "重试后台服务",
     },
     "zh_TW": {
         "starting": "啟動中...",
@@ -75,6 +77,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "建議將程序安裝到 Program Files 目錄下以降低安全風險。\n\n"
             "是否仍要繼續設置開機啟動？"
         ),
+        "worker_failed": "後台服務已失效",
+        "retry_worker": "重試後台服務",
     },
     "en": {
         "starting": "Starting...",
@@ -113,6 +117,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Installing the application under Program Files is recommended to reduce this risk.\n\n"
             "Do you want to continue enabling autostart anyway?"
         ),
+        "worker_failed": "Background service failed",
+        "retry_worker": "Retry background service",
     }
 }
 

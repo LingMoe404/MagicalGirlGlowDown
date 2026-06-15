@@ -325,4 +325,73 @@ async def test_gcc_close_retries_pending_restore_before_new_dim(
     assert worker.service.snapshots["gigabyte:board"].pending_restore is False
 
 
+import threading
+import pytest
+from magical_girl_glow_down.tray import WorkerController
+
+class RecordingSignal:
+    def __init__(self) -> None:
+        self.values: list[str] = []
+
+    def emit(self, value: str) -> None:
+        self.values.append(value)
+
+
+class RecordingBridge:
+    def __init__(self) -> None:
+        self.status_changed = RecordingSignal()
+        self.worker_failed = RecordingSignal()
+
+    @property
+    def failures(self) -> list[str]:
+        return self.worker_failed.values
+
+
+class FakeThread:
+    def __init__(self) -> None:
+        self._alive = False
+        self.stop_event = threading.Event()
+
+    def start(self) -> None:
+        self._alive = True
+
+    def is_alive(self) -> bool:
+        return self._alive
+
+    def mark_stopped(self) -> None:
+        self._alive = False
+
+
+def build_failure_worker(tmp_path, bridge: RecordingBridge) -> Worker:
+    return Worker(
+        idle_seconds=30.0,
+        data_dir=tmp_path,
+        monitor=GameControllerMonitor(_xinput=None),
+        bridge=bridge,
+    )
+
+
+def test_worker_emits_failure_when_async_loop_crashes(tmp_path, monkeypatch) -> None:
+    bridge = RecordingBridge()
+    worker = build_failure_worker(tmp_path, bridge)
+
+    async def fail() -> None:
+        raise RuntimeError("input API failed")
+
+    monkeypatch.setattr(worker, "_run", fail)
+    worker.run()
+
+    assert bridge.failures == ["input API failed"]
+
+
+def test_retry_starts_only_after_failed_worker_stops() -> None:
+    controller = WorkerController(lambda: FakeThread())
+    first = controller.start()
+    with pytest.raises(RuntimeError, match="already running"):
+        controller.start()
+    first.mark_stopped()
+    second = controller.restart()
+    assert second is not first
+
+
 
