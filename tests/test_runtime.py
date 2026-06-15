@@ -1,6 +1,7 @@
-from unittest.mock import patch
 import builtins
 import sys
+from unittest.mock import patch
+
 from magical_girl_glow_down.runtime import build_runtime_command, is_compiled, runtime_command
 
 

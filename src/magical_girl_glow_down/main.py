@@ -27,11 +27,21 @@ def _restore_delay(value: str) -> float:
     return delay
 
 
+def _positive_finite_float(value: str) -> float:
+    import math
+
+    parsed = float(value)
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be a finite number greater than zero")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog=CLI_NAME)
     parser.add_argument("--simulate", action="store_true", help="run without HID hardware")
     parser.add_argument("--cycles", type=int, default=1)
-    parser.add_argument("--idle-seconds", type=float)
+    parser.add_argument("--idle-seconds", type=_positive_finite_float)
+
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--install-autostart", action="store_true")
     parser.add_argument("--remove-autostart", action="store_true")

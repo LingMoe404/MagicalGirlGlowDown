@@ -13,9 +13,7 @@ def is_compiled() -> bool:
         return True
     # If the base name of the executable does not contain "python",
     # it is almost certainly a packaged/compiled binary executable.
-    if "python" not in os.path.basename(sys.executable).lower():
-        return True
-    return False
+    return "python" not in os.path.basename(sys.executable).lower()
 
 
 def build_runtime_command(

@@ -1,6 +1,4 @@
-import builtins
 import ctypes
-import sys
 from typing import Any
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
@@ -24,7 +22,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "timeout_dialog_label": "空闲时间 (秒):",
         
         "autostart_failed_title": "设置开机启动失败",
-        "autostart_failed_msg": "设置开机启动失败：\n{error}\n\n提示：此操作通常需要管理员权限。请尝试以管理员身份运行程序后重试。",
+        "autostart_failed_msg": (
+            "设置开机启动失败：\n{error}\n\n"
+            "提示：此操作通常需要管理员权限。请尝试以管理员身份运行程序后重试。"
+        ),
         "admin_needed": "MagicalGirlGlowDown 需要管理员权限以控制技嘉灯光。",
     },
     "zh_TW": {
@@ -44,10 +45,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "start_with_windows": "開機自動啟動",
         "exit": "退出",
         "timeout_dialog_title": "設置空閒超時",
-        "timeout_dialog_label": "空閒時間 (秒):",
+        "timeout_dialog_label": "開閒時間 (秒):",
         
         "autostart_failed_title": "設置開機啟動失敗",
-        "autostart_failed_msg": "設置開機啟動失敗：\n{error}\n\n提示：此操作通常需要管理員權限。請嘗試以管理員身份運行程序後重試。",
+        "autostart_failed_msg": (
+            "設置開機啟動失敗：\n{error}\n\n"
+            "提示：此操作通常需要管理員權限。請嘗試以管理員身份運行程序後重試。"
+        ),
         "admin_needed": "MagicalGirlGlowDown 需要管理員權限以控制技嘉燈光。",
     },
     "en": {
@@ -70,7 +74,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "timeout_dialog_label": "Idle timeout (seconds):",
         
         "autostart_failed_title": "Autostart Configuration Failed",
-        "autostart_failed_msg": "Failed to configure autostart:\n{error}\n\nTip: This action usually requires administrator privileges. Please try running the application as administrator.",
+        "autostart_failed_msg": (
+            "Failed to configure autostart:\n{error}\n\n"
+            "Tip: This action usually requires administrator privileges. "
+            "Please try running the application as administrator."
+        ),
         "admin_needed": "MagicalGirlGlowDown needs administrator permission for Gigabyte lighting.",
     }
 }
@@ -81,7 +89,8 @@ def get_system_language() -> str:
         buf = ctypes.create_unicode_buffer(85)
         if ctypes.windll.kernel32.GetUserDefaultLocaleName(buf, 85) > 0:
             locale_name = buf.value.lower()
-            # Simplified Chinese: zh-CN (PRC), zh-SG (Singapore), zh-MY (Malaysia), or contains "hans"
+            # Simplified Chinese: zh-CN (PRC), zh-SG (Singapore), zh-MY (Malaysia),
+            # or contains "hans"
             if (
                 locale_name.startswith("zh-cn")
                 or locale_name.startswith("zh-sg")
@@ -89,7 +98,8 @@ def get_system_language() -> str:
                 or "hans" in locale_name
             ):
                 return "zh_CN"
-            # Traditional Chinese: zh-TW (Taiwan), zh-HK (Hong Kong), zh-MO (Macau), or contains "hant"
+            # Traditional Chinese: zh-TW (Taiwan), zh-HK (Hong Kong), zh-MO (Macau),
+            # or contains "hant"
             elif (
                 locale_name.startswith("zh-tw")
                 or locale_name.startswith("zh-hk")

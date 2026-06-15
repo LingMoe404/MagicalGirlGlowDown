@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from magical_girl_glow_down.main import app_data_dir, build_parser
 
 
@@ -39,3 +41,12 @@ def test_app_data_dir_uses_final_product_directory(
     result = app_data_dir()
 
     assert result == tmp_path / "MagicalGirlGlowDown"
+
+
+@pytest.mark.parametrize("value", ["nan", "inf", "-inf", "0", "-1"])
+def test_idle_seconds_cli_rejects_invalid_values(value: str) -> None:
+    import pytest
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--simulate", "--idle-seconds", value])
+

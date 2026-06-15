@@ -33,12 +33,21 @@ class AppSettings:
     autostart: bool = True
 
     def __post_init__(self) -> None:
+        import math
+
+        if not math.isfinite(self.idle_seconds):
+            raise ValueError("idle_seconds must be finite")
         if self.idle_seconds <= 0:
             raise ValueError("idle_seconds must be positive")
-        if not 0 <= self.axis_dead_zone <= 1:
-            raise ValueError("axis_dead_zone must be between 0 and 1")
-        if not 0 <= self.axis_change_threshold <= 1:
-            raise ValueError("axis_change_threshold must be between 0 and 1")
+        for name, value in (
+            ("axis_dead_zone", self.axis_dead_zone),
+            ("axis_change_threshold", self.axis_change_threshold),
+        ):
+            if not math.isfinite(value):
+                raise ValueError(f"{name} must be finite")
+            if not 0 <= value <= 1:
+                raise ValueError(f"{name} must be between 0 and 1")
+
 
 
 @dataclass(frozen=True, slots=True)

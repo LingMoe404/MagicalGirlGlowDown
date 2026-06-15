@@ -25,10 +25,10 @@ from .branding import APP_DISPLAY_NAME, APP_NAME, icon_path
 from .discovery import discover_controllers
 from .domain import AppSettings
 from .gigabyte import GigabyteError, GigabyteHelperClient, GigabyteLightingTarget
+from .i18n import t
 from .lighting import LightingTarget
 from .protocol import NollieController, NollieLightingTarget
 from .runtime import runtime_command
-from .i18n import t
 from .service import LightingService
 from .storage import StateStore
 from .windows_input import (
