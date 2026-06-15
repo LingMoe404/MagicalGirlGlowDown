@@ -303,20 +303,32 @@ def run_tray(idle_seconds: float | None, data_dir: Path) -> int:
         )
 
     def toggle_autostart(checked: bool) -> None:
-        if checked:
-            autostart.enable()
-        else:
-            autostart.disable()
-        current = store.load_settings()
-        store.save_settings(
-            AppSettings(
-                idle_seconds=current.idle_seconds,
-                axis_dead_zone=current.axis_dead_zone,
-                axis_change_threshold=current.axis_change_threshold,
-                enabled=current.enabled,
-                autostart=checked,
+        try:
+            if checked:
+                autostart.enable()
+            else:
+                autostart.disable()
+            current = store.load_settings()
+            store.save_settings(
+                AppSettings(
+                    idle_seconds=current.idle_seconds,
+                    axis_dead_zone=current.axis_dead_zone,
+                    axis_change_threshold=current.axis_change_threshold,
+                    enabled=current.enabled,
+                    autostart=checked,
+                )
             )
-        )
+        except Exception as e:
+            autostart_action.blockSignals(True)
+            autostart_action.setChecked(not checked)
+            autostart_action.blockSignals(False)
+
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                None,
+                APP_DISPLAY_NAME,
+                f"设置开机启动失败：\n{str(e)}\n\n提示：此操作通常需要管理员权限。请尝试以管理员身份运行程序后重试。",
+            )
 
     bridge.status_changed.connect(update_status)
     pause_action.triggered.connect(toggle_pause)
