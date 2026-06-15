@@ -66,5 +66,15 @@ v0.1.0 - ✨ 魔法少女·静谧霓虹 (Magical Girl Glow Down) v0.1.0 - 始动
 *   `MagicalGirlGlowDown` 计划任务开机自启的创建、运行与卸载。
 *   命令行模式下的硬件只读探测与自动恢复测试。
 
+## 🤖 致谢 (Credits)
+
+本软件的诞生与进化离不开以下 AI 协作者与智能体平台的鼎力相助：
+*   **OpenAI Codex**：作为初始共同开发 AI，参与核心方案设计、协议分析、代码实现、测试与文档整理。
+*   **Google Gemini (via Antigravity 平台)**：作为持续优化与重构 AI，负责本次 C# 辅助进程常驻化、原生 Win32 进程扫描、节流优化、单元测试补充以及安全/故障诊断文档整理。
+
+We would like to express our gratitude to the following AI collaborators and platforms:
+*   **OpenAI Codex**: As the initial co-development AI, assisted with core architecture design, protocol analysis, code implementation, testing, and documentation.
+*   **Google Gemini (via the Antigravity platform)**: As the continuous optimization AI, optimized the architecture (including C# helper process persistence, native Windows process monitoring, etc.), refactored code, expanded test coverage, and refined documentation.
+
 ---
 *“观测者啊，哪怕深夜长眠，静谧霓虹也会在下一次触碰时为你再次亮起！”*

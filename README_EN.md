@@ -3,7 +3,7 @@
 [简体中文](README.md)
 
 ![Version](https://img.shields.io/badge/version-0.1.0-FB7299?style=for-the-badge)
-![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-OpenAI_Codex-8E75B2?style=for-the-badge)
+![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-Codex%20%7C%20Gemini%20%7C%20Antigravity-8E75B2?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/OS-Windows_10_%7C_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12.10-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
@@ -16,7 +16,7 @@
 > including onboard zones, 5V ARGB headers, and 12V RGB headers. It also yields
 > control to NollieRGB and Gigabyte Control Center to reduce hardware conflicts
 > between lighting applications.<br>
-> *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with OpenAI Codex.*
+> *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with OpenAI Codex & Google Gemini (via Antigravity).*
 
 > [!IMPORTANT]
 > **⚠️ Hardware Compatibility Disclaimer**
@@ -254,14 +254,15 @@ development tools:
 * [.NET](https://dotnet.microsoft.com/): Isolated runtime for the Gigabyte
   lighting control component.
 * [uv](https://docs.astral.sh/uv/): Python project and dependency management.
-* **OpenAI Codex**: Assisted with design, protocol analysis, implementation,
-  testing, and documentation.
+* **OpenAI Codex**: As the initial co-development AI, assisted with core architecture design, protocol analysis, code implementation, testing, and documentation.
+* **Google Gemini & Antigravity**: As the continuous optimization AI, optimized the architecture via the Antigravity agent platform (including C# helper process persistence, native Windows process monitoring, etc.), refactored code, expanded test coverage, and refined documentation.
 
 ## Behind the Project
 
 MagicalGirlGlowDown is an **AI-assisted project led by LingMoe404**. LingMoe404
 owns product direction, requirements, hardware validation, and final decisions;
-OpenAI Codex collaborates on architecture, implementation, debugging, testing,
-and documentation.
+OpenAI Codex and Google Gemini (via the Antigravity platform) collaborate on
+architecture design, implementation, refactoring, debugging, testing, and
+documentation.
 
 Copyright © 2026 LingMoe404
