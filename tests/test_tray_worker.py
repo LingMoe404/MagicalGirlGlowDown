@@ -85,3 +85,148 @@ async def test_gcc_ownership_discards_orphaned_persisted_snapshot(tmp_path) -> N
     await policy.tick([], idle=True, gcc_running=True)
 
     assert "gigabyte:board" not in service.snapshots
+
+
+async def test_worker_run_loop_throttling_and_close(tmp_path, monkeypatch) -> None:
+    from unittest.mock import MagicMock
+
+    from magical_girl_glow_down.tray import StatusBridge, Worker
+    from magical_girl_glow_down.windows_input import GameControllerMonitor
+
+    class FakeGigabyteLightingTarget(FakeLightingTarget):
+        def __init__(self, backend: str, device: str, state: dict[str, object]) -> None:
+            super().__init__(backend, device, state)
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+
+    # Mocks
+    mock_original_running = MagicMock(return_value=False)
+    mock_gcc_running = MagicMock(return_value=False)
+    mock_discover = MagicMock(return_value=[])
+
+    monkeypatch.setattr(
+        "magical_girl_glow_down.tray.is_original_app_running",
+        mock_original_running,
+    )
+    monkeypatch.setattr("magical_girl_glow_down.tray.is_gcc_running", mock_gcc_running)
+    monkeypatch.setattr("magical_girl_glow_down.tray.discover_controllers", mock_discover)
+
+    # Mock time to step forward manually
+    time_val = 100.0
+    def mock_monotonic() -> float:
+        return time_val
+    monkeypatch.setattr("time.monotonic", mock_monotonic)
+
+    # Mock gigabyte target and discovery
+    mock_gigabyte_target = FakeGigabyteLightingTarget(
+        "gigabyte",
+        "board",
+        {"zones": [{"id": "logo", "brightness": 80}]},
+    )
+
+    # We will instantiate Worker
+    monitor = MagicMock(spec=GameControllerMonitor)
+    monitor.last_activity = 0.0
+    bridge = MagicMock(spec=StatusBridge)
+
+    worker = Worker(
+        idle_seconds=30.0,
+        data_dir=tmp_path,
+        monitor=monitor,
+        bridge=bridge,
+    )
+
+    # Mock _discover_gigabyte_target
+    async def mock_discover_gigabyte() -> FakeGigabyteLightingTarget:
+        return mock_gigabyte_target
+
+    worker._discover_gigabyte_target = mock_discover_gigabyte  # type: ignore
+
+    step = 0
+
+    # We can patch asyncio.sleep to check progress and stop/advance time
+    async def mock_sleep(delay: float) -> None:
+        nonlocal step, time_val
+        step += 1
+        if step == 1:
+            time_val = 101.0
+        elif step == 2:
+            time_val = 103.0
+            mock_gcc_running.return_value = True
+        elif step == 3:
+            worker.stop_event.set()
+
+    monkeypatch.setattr("asyncio.sleep", mock_sleep)
+
+    # Run the worker's async _run
+    await worker._run()
+
+    # Total checks to is_gcc_running and is_original_app_running should be exactly 2
+    assert mock_gcc_running.call_count == 2
+    assert mock_original_running.call_count == 2
+
+    # gigabyte_target should have been closed when gcc_running became True
+    assert mock_gigabyte_target.close_calls == 1
+
+
+async def test_worker_run_loop_finally_closes_gigabyte(tmp_path, monkeypatch) -> None:
+    from unittest.mock import MagicMock
+
+    from magical_girl_glow_down.tray import StatusBridge, Worker
+    from magical_girl_glow_down.windows_input import GameControllerMonitor
+
+    class FakeGigabyteLightingTarget(FakeLightingTarget):
+        def __init__(self, backend: str, device: str, state: dict[str, object]) -> None:
+            super().__init__(backend, device, state)
+            self.close_calls = 0
+
+        async def close(self) -> None:
+            self.close_calls += 1
+
+    # Mocks
+    mock_original_running = MagicMock(return_value=False)
+    mock_gcc_running = MagicMock(return_value=False)
+    mock_discover = MagicMock(return_value=[])
+
+    monkeypatch.setattr(
+        "magical_girl_glow_down.tray.is_original_app_running",
+        mock_original_running,
+    )
+    monkeypatch.setattr("magical_girl_glow_down.tray.is_gcc_running", mock_gcc_running)
+    monkeypatch.setattr("magical_girl_glow_down.tray.discover_controllers", mock_discover)
+
+    mock_gigabyte_target = FakeGigabyteLightingTarget(
+        "gigabyte",
+        "board",
+        {"zones": [{"id": "logo", "brightness": 80}]},
+    )
+
+    monitor = MagicMock(spec=GameControllerMonitor)
+    monitor.last_activity = 0.0
+    bridge = MagicMock(spec=StatusBridge)
+
+    worker = Worker(
+        idle_seconds=30.0,
+        data_dir=tmp_path,
+        monitor=monitor,
+        bridge=bridge,
+    )
+
+    async def mock_discover_gigabyte() -> FakeGigabyteLightingTarget:
+        return mock_gigabyte_target
+
+    worker._discover_gigabyte_target = mock_discover_gigabyte  # type: ignore
+
+    async def mock_sleep(delay: float) -> None:
+        worker.stop_event.set()
+
+    monkeypatch.setattr("asyncio.sleep", mock_sleep)
+
+    await worker._run()
+
+    # gigabyte_target should have been closed in the finally block
+    assert mock_gigabyte_target.close_calls == 1
+
+

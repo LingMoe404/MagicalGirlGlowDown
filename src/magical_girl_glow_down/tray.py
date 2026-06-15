@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .app_guard import is_gcc_running, is_original_app_running, running_process_names
+from .app_guard import is_gcc_running, is_original_app_running
 from .autostart import AutostartManager, WindowsTaskScheduler
 from .branding import APP_DISPLAY_NAME, APP_NAME, icon_path
 from .discovery import discover_controllers
@@ -90,12 +90,16 @@ class Worker(threading.Thread):
         last_dim_scan = 0.0
         next_gigabyte_scan = 0.0
         was_gcc_running = False
+        last_app_check = 0.0
+        original_running = False
+        gcc_is_running = False
         try:
             while not self.stop_event.is_set():
                 now = time.monotonic()
-                process_names = running_process_names()
-                original_running = is_original_app_running(process_names)
-                gcc_is_running = is_gcc_running(process_names)
+                if now - last_app_check >= 2.0:
+                    original_running = is_original_app_running()
+                    gcc_is_running = is_gcc_running()
+                    last_app_check = now
                 if not original_running and now - last_scan >= 2:
                     for controller in controllers:
                         controller.close()
@@ -104,9 +108,9 @@ class Worker(threading.Thread):
                         NollieLightingTarget(controller) for controller in controllers
                     ]
                     last_scan = now
-                if gcc_is_running:
-                    next_gigabyte_scan = now + 2
-                elif was_gcc_running:
+                if gcc_is_running or was_gcc_running:
+                    if gigabyte_target is not None:
+                        await gigabyte_target.close()
                     gigabyte_target = None
                     next_gigabyte_scan = now + 2
                 elif gigabyte_target is None and now >= next_gigabyte_scan:
@@ -150,6 +154,8 @@ class Worker(threading.Thread):
                     controllers = []
                     nollie_targets = []
                 if gcc_is_running:
+                    if gigabyte_target is not None:
+                        await gigabyte_target.close()
                     gigabyte_target = None
                 was_gcc_running = gcc_is_running
                 self.bridge.status_changed.emit(status)
@@ -159,6 +165,8 @@ class Worker(threading.Thread):
             if gigabyte_target is not None:
                 targets.append(gigabyte_target)
             await self.service.restore(targets)
+            if gigabyte_target is not None:
+                await gigabyte_target.close()
             for controller in controllers:
                 controller.close()
 

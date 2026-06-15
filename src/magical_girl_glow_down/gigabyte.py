@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -66,6 +67,45 @@ class GigabyteHelperClient:
     ) -> None:
         self.command = tuple(command or find_helper_command())
         self.timeout = timeout
+        self._process: asyncio.subprocess.Process | None = None
+        self._lock: asyncio.Lock = asyncio.Lock()
+
+    async def _ensure_process(self) -> asyncio.subprocess.Process:
+        if self._process is not None:
+            return self._process
+
+        try:
+            self._process = await asyncio.create_subprocess_exec(
+                *self.command,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+        except OSError as exc:
+            raise GigabyteError(f"could not start Gigabyte helper: {exc}") from exc
+        return self._process
+
+    async def stop(self) -> None:
+        async with self._lock:
+            if self._process is not None:
+                if self._process.stdin is not None:
+                    try:
+                        self._process.stdin.close()
+                        await self._process.stdin.wait_closed()
+                    except Exception:
+                        pass
+                with contextlib.suppress(Exception):
+                    self._process.terminate()
+                try:
+                    await self._process.wait()
+                except Exception:
+                    try:
+                        self._process.kill()
+                        await self._process.wait()
+                    except Exception:
+                        pass
+                self._process = None
 
     async def probe(self) -> GigabyteProbe:
         result = await self._request("probe")
@@ -137,51 +177,83 @@ class GigabyteHelperClient:
             "operation": operation,
             "payload": payload,
         }
-        try:
-            process = await asyncio.create_subprocess_exec(
-                *self.command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                creationflags=subprocess.CREATE_NO_WINDOW,
-            )
-        except OSError as exc:
-            raise GigabyteError(f"could not start Gigabyte helper: {exc}") from exc
-
         encoded = (json.dumps(request, ensure_ascii=True) + "\n").encode()
-        try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(encoded),
-                timeout=self.timeout,
-            )
-        except TimeoutError as exc:
-            process.kill()
-            await process.wait()
-            raise GigabyteError("Gigabyte helper timed out") from exc
 
-        if stderr:
-            log.debug("Gigabyte helper stderr: %s", stderr.decode(errors="replace").strip())
-        if process.returncode != 0:
-            raise GigabyteError(f"Gigabyte helper exited with code {process.returncode}")
-        try:
-            response: Any = json.loads(stdout.decode())
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise GigabyteError("Gigabyte helper returned invalid JSON") from exc
-        if not isinstance(response, dict):
-            raise GigabyteError("Gigabyte helper response is not an object")
-        if response.get("schema") != 1 or response.get("requestId") != request_id:
-            raise GigabyteError("Gigabyte helper response identity mismatch")
-        if response.get("ok") is not True:
-            error = response.get("error")
-            if not isinstance(error, dict):
-                raise GigabyteError("Gigabyte helper returned an unspecified error")
-            code = error.get("code", "unknown_error")
-            message = error.get("message", "unknown helper error")
-            raise GigabyteError(f"{code}: {message}")
-        result = response.get("result")
-        if not isinstance(result, dict):
-            raise GigabyteError("Gigabyte helper result is not an object")
-        return result
+        async with self._lock:
+            process = await self._ensure_process()
+            if process.stdin is None or process.stdout is None:
+                raise GigabyteError("Gigabyte helper process did not create standard I/O pipes")
+
+            try:
+                process.stdin.write(encoded)
+                await process.stdin.drain()
+            except Exception as exc:
+                log.debug("Gigabyte helper write failed: %s", exc)
+                with contextlib.suppress(Exception):
+                    process.kill()
+                self._process = None
+
+                process = await self._ensure_process()
+                if process.stdin is None or process.stdout is None:
+                    raise GigabyteError(
+                        "Gigabyte helper process did not create standard I/O pipes"
+                    ) from exc
+
+                try:
+                    process.stdin.write(encoded)
+                    await process.stdin.drain()
+                except Exception as retry_exc:
+                    log.debug("Gigabyte helper write failed after restart: %s", retry_exc)
+                    with contextlib.suppress(Exception):
+                        process.kill()
+                    self._process = None
+                    raise GigabyteError(
+                        f"could not write to Gigabyte helper after restart: {retry_exc}"
+                    ) from retry_exc
+
+            stdout = process.stdout
+            if stdout is None:
+                raise GigabyteError("Gigabyte helper process did not create standard I/O pipes")
+
+            try:
+                line_bytes = await asyncio.wait_for(
+                    stdout.readline(),
+                    timeout=self.timeout,
+                )
+            except TimeoutError as exc:
+                with contextlib.suppress(Exception):
+                    process.kill()
+                self._process = None
+                raise GigabyteError("Gigabyte helper timed out") from exc
+
+            if not line_bytes:
+                with contextlib.suppress(Exception):
+                    process.kill()
+                self._process = None
+                raise GigabyteError("Gigabyte helper terminated unexpectedly")
+
+            if process.returncode is not None and process.returncode != 0:
+                raise GigabyteError(f"Gigabyte helper exited with code {process.returncode}")
+
+            try:
+                response: Any = json.loads(line_bytes.decode())
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise GigabyteError("Gigabyte helper returned invalid JSON") from exc
+            if not isinstance(response, dict):
+                raise GigabyteError("Gigabyte helper response is not an object")
+            if response.get("schema") != 1 or response.get("requestId") != request_id:
+                raise GigabyteError("Gigabyte helper response identity mismatch")
+            if response.get("ok") is not True:
+                error = response.get("error")
+                if not isinstance(error, dict):
+                    raise GigabyteError("Gigabyte helper returned an unspecified error")
+                code = error.get("code", "unknown_error")
+                message = error.get("message", "unknown helper error")
+                raise GigabyteError(f"{code}: {message}")
+            result = response.get("result")
+            if not isinstance(result, dict):
+                raise GigabyteError("Gigabyte helper result is not an object")
+            return result
 
     @staticmethod
     def _required_string(value: dict[str, Any], key: str) -> str:
@@ -211,3 +283,6 @@ class GigabyteLightingTarget:
 
     async def restore(self, snapshot: dict[str, object]) -> None:
         await self.client.restore(self.board_fingerprint, snapshot)
+
+    async def close(self) -> None:
+        await self.client.stop()

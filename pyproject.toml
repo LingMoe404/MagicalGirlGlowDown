@@ -7,7 +7,6 @@ license = { file = "LICENSE" }
 requires-python = ">=3.12.10,<3.13"
 dependencies = [
   "hidapi>=0.14.0.post4",
-  "psutil>=6.1",
   "pyside6>=6.8",
 ]
 
@@ -20,7 +19,6 @@ dev = [
   "pytest>=8.3",
   "pytest-asyncio>=0.25",
   "ruff>=0.9",
-  "types-psutil>=6.1",
 ]
 
 [build-system]
