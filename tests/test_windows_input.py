@@ -1,8 +1,10 @@
 from magical_girl_glow_down.windows_input import (
     RAWHID_PREFIX,
     RAWINPUTHEADER,
+    UINT_ERROR,
     GameControllerMonitor,
     parse_raw_hid_buffer,
+    read_raw_input_report,
     state_has_activity,
 )
 
@@ -53,3 +55,37 @@ def test_parse_raw_hid_buffer_rejects_non_hid_input() -> None:
     raw = bytes(header) + bytes(RAWHID_PREFIX())
 
     assert parse_raw_hid_buffer(raw) is None
+
+
+def test_read_raw_input_report_handles_api_failure(monkeypatch) -> None:
+    def fake_get_raw_input_data(*args):
+        return UINT_ERROR
+
+    monkeypatch.setattr(
+        "ctypes.windll.user32.GetRawInputData",
+        fake_get_raw_input_data,
+        raising=False,
+    )
+
+    assert read_raw_input_report(123) is None
+    assert fake_get_raw_input_data.restype is not None
+    assert fake_get_raw_input_data.argtypes
+
+
+def test_read_raw_input_report_rejects_invalid_report_size(monkeypatch) -> None:
+    calls: list[object] = []
+
+    def fake_get_raw_input_data(handle, command, buffer, size_ptr, header_size):
+        calls.append(buffer is None)
+        size_ptr._obj.value = 1
+        return 1
+
+    monkeypatch.setattr(
+        "ctypes.windll.user32.GetRawInputData",
+        fake_get_raw_input_data,
+        raising=False,
+    )
+
+    assert read_raw_input_report(123) is None
+    assert calls == [True, False]
+    assert fake_get_raw_input_data.argtypes

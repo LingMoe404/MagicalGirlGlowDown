@@ -31,9 +31,10 @@ class StateStore:
         legacy_store = StateStore(self.settings_dir, self.settings_dir)
         snapshots = legacy_store.load_snapshots()
         self.save_snapshots(snapshots)
-        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        migrated = self.settings_dir / f"state.migrated-{stamp}.json"
-        os.replace(self.legacy_state_path, migrated)
+        if self.legacy_state_path.exists():
+            stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+            migrated = self.settings_dir / f"state.migrated-{stamp}.json"
+            os.replace(self.legacy_state_path, migrated)
 
     def load_snapshots(self) -> dict[str, LightingSnapshot]:
         if not self.state_path.exists():

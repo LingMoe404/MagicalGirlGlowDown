@@ -34,7 +34,7 @@ uv run magical-girl-glow-down --gigabyte-test-all --restore-after 5 --debug
 A: 本工具具备**异常自愈机制**。熄灯前会自动在本地写入一份灯光状态恢复快照。如果在熄灯期间程序意外崩溃或被强杀，您只需再次启动本程序，它在初始化时会自动检测并读取残留的快照数据，将灯效还原。
 
 **Q: 软件的配置文件和恢复状态保存在哪里？**  
-A: 用户的个性化设置保存在 `%LOCALAPPDATA%\MagicalGirlGlowDown\settings.json` 下。为了防止非特权程序篡改，硬件的灯光快照（`state.json`）与技嘉暂存文件均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 下，该目录被施加了严格的 ACL 访问控制，仅允许 Administrators 组和 SYSTEM 进行读写。
+A: 用户的个性化设置保存在 `%LOCALAPPDATA%\MagicalGirlGlowDown\settings.json` 下。为了防止非特权程序篡改，硬件的灯光快照（`state.json`）与技嘉暂存文件均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 下；程序会在启动时创建并验证该目录，检查目录及其父链是否为重解析点，并拒绝允许非管理员写入的 ACL。
 
 **Q: 如果后台监听服务发生错误退出，该怎么办？**  
 A: 本程序支持后台进程故障隔离。一旦发生致命的后台错误，系统托盘图标状态会变为“后台服务已失效”，同时右键菜单中会启用“重试后台服务”选项。您只需手动点击它，即可重新拉起后台服务，而无需重启整个托盘客户端。
@@ -80,7 +80,7 @@ This turns off validated motherboard zones and restores their original effects a
 A: The tool features an **auto-recovery mechanism**. Before blacking out, it saves a snapshot of the active lighting state. If the app crashes or is killed during blackout, simply start the app again. It will detect the snapshot on startup and restore the lights.
 
 **Q: Where are the configuration and recovery files stored?**  
-A: Your settings are stored at `%LOCALAPPDATA%\MagicalGirlGlowDown\settings.json`. To prevent tampering, the hardware lighting snapshots (`state.json`) and Gigabyte staged files are stored under `%ProgramData%\MagicalGirlGlowDown`. This directory enforces an ACL that allows read/write access only to the Administrators group and SYSTEM.
+A: Your settings are stored at `%LOCALAPPDATA%\MagicalGirlGlowDown\settings.json`. To prevent tampering, the hardware lighting snapshots (`state.json`) and Gigabyte staged files are stored under `%ProgramData%\MagicalGirlGlowDown`. The app creates and verifies that directory at startup, checks the directory and its parent chain for reparse points, and rejects ACLs that allow writable access to non-administrative principals.
 
 **Q: What should I do if the background service fails?**  
 A: The utility supports background service failure isolation. If a fatal background exception occurs, the system tray status changes to "Background service failed" and enables a "Retry background service" option in the right-click menu. Simply click it to manually restart the background service without restarting the app.

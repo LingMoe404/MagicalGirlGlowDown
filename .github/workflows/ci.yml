@@ -22,6 +22,8 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - run: dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -c Release -v minimal
-      - run: uv build
       - shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File .\scripts\build-helper.ps1 -SelfContained
+      - run: uv build
+      - shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\verify-wheel-helper.ps1

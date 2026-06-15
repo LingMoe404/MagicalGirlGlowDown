@@ -28,7 +28,7 @@
 4.  **打包版本安全隔离 (Packaged Build Isolation)**:
     *   打包后的发布版本会自动忽略 `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` 和 `MAGICALGIRLGLOWDOWN_GCC_ROOT` 环境变量，仅从内置的可信目录加载辅助客户端，且仅从系统标准 `%ProgramFiles%\GIGABYTE\Control Center` 加载 GCC，杜绝利用环境变量覆盖 DLL 或执行路径的安全隐患。
 5.  **受保护的暂存与存储目录 (Protected Data Directories)**:
-    *   所有的 DLL 暂存（staging）和灯光恢复状态（`state.json`）均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。该目录由程序启动时在特权上下文中创建，剥夺了普通用户和非特权进程的写权限（仅允许 `SYSTEM` 和 `Administrators` 读写），并在每次加载前严格执行符号链接（Symbolic Link）和连接点（Junction）等重解析点防篡改检查，防止非法提权。
+    *   所有的 DLL 暂存（staging）和灯光恢复状态（`state.json`）均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。该目录由程序在提升权限上下文中创建并复检，要求目录本身及其父链不得是重解析点，同时拒绝可写的非管理员 ACL 结构，以降低 staging DLL 被替换的风险。
 6.  **便携版自启动确认 (Portable Autostart Warning)**:
     *   如果本程序在非受保护的用户可写目录下运行，启用开机自启动时会强制弹出安全警示，必须经用户明确同意才能创建任务。
 
@@ -75,9 +75,9 @@ To help security researchers and users understand our architecture:
 4.  **Packaged Build Isolation**:
     *   Packaged builds strictly ignore `MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` and `MAGICALGIRLGLOWDOWN_GCC_ROOT` environment variables. They only execute the trusted C# helper in their package folder, and resolve GCC exclusively from `%ProgramFiles%\GIGABYTE\Control Center` to prevent path injection/hijacking.
 5.  **Protected Data Directories**:
-    *   All helper staging folders and recovery state (`state.json`) are stored in `%ProgramData%\MagicalGirlGlowDown`. This directory enforces an ACL that allows full control only to `SYSTEM` and `Administrators`, rejecting any standard-user write access. The app also verifies on startup that neither the directory nor its parents are junctions or symbolic links, preventing redirection attacks.
+    *   All helper staging folders and recovery state (`state.json`) are stored in `%ProgramData%\MagicalGirlGlowDown`. The app creates and verifies that directory on startup, checks the directory and its parent chain for reparse points, and rejects ACLs that allow writable access to non-administrative principals.
 6.  **Portable Autostart Warning**:
-    *   Enabling autostart for a portable build running outside a protected path (like `Program Files`) triggers a mandatory security dialog requiring explicit confirmation.
+    *   Enabling autostart for a portable build running outside a protected path (like `Program Files`) triggers a security warning and requires explicit confirmation.
 
 ## Reporting a Vulnerability
 

@@ -178,6 +178,25 @@ def test_legacy_state_migrates_only_after_protected_save(tmp_path: Path) -> None
     assert list(settings_dir.glob("state.migrated-*.json"))
 
 
+def test_corrupt_legacy_state_is_quarantined_and_replaced(tmp_path: Path) -> None:
+    settings_dir = tmp_path / "user"
+    state_dir = tmp_path / "protected"
+    legacy = settings_dir / "state.json"
+    settings_dir.mkdir()
+    legacy.write_text("{broken", encoding="utf-8")
+    store = StateStore(settings_dir, state_dir)
+
+    store.migrate_legacy_state()
+
+    assert store.state_path.exists()
+    assert json.loads(store.state_path.read_text(encoding="utf-8")) == {
+        "version": 2,
+        "snapshots": {},
+    }
+    assert not legacy.exists()
+    assert list(settings_dir.glob("state.corrupt-*.json"))
+
+
 def test_mixed_corruption_rewrites_valid_entries(tmp_path: Path) -> None:
     store = StateStore(tmp_path, tmp_path)
     store.state_path.write_text(

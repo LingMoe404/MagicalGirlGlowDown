@@ -85,5 +85,5 @@ uv run magical-girl-glow-down --gigabyte-test-all --restore-after 5 --debug
 为了确保管理员权限下主板灯效控制的安全性与恢复可靠性，系统设计了以下机制：
 
 1. **打包运行隔离**：在打包发布版本中，任何 helper 或 GCC 的环境变量路径覆盖（`MAGICALGIRLGLOWDOWN_GIGABYTE_HELPER` 和 `MAGICALGIRLGLOWDOWN_GCC_ROOT`）都将被严格忽略。程序仅在固定路径 `%ProgramFiles%\GIGABYTE\Control Center` 下寻找 GCC 依赖组件，防止通过注入环境变量加载不安全的代码。
-2. **保护暂存与存储目录**：C# 辅助程序的 DLL 暂存区与 Python 持久化恢复状态均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。该目录由特权程序在创建时配置 ACL（仅允许内置 Administrators 组和 SYSTEM 拥有写权限，普通用户只读/拒绝写）。在加载或写入前，系统会强校验该目录及其祖先目录是否为重解析点（符号链接/连接点），若检测到重解析点则直接拒绝执行，彻底规避 staging DLL 篡改或任意文件写入漏洞。
+2. **保护暂存与存储目录**：C# 辅助程序的 DLL 暂存区与 Python 持久化恢复状态均保存在全局 `%ProgramData%\MagicalGirlGlowDown` 目录下。该目录由特权程序在创建时初始化为受保护 ACL，并在加载或写入前校验该目录及其祖先目录是否为重解析点（符号链接/连接点）；若检测到重解析点或不安全的写入权限，程序会拒绝执行。
 3. **GCC 冲突与待机快照保护**：在熄灯待机期间若 GCC 启动，本工具会优雅释放主板写入权限。若因此导致在 handoff 前恢复失败，快照会置为 `pending_restore` 并安全保留在 `%ProgramData%\MagicalGirlGlowDown\state.json` 中。待 GCC 关闭后，本工具会重新探测并优先应用并完成此 pending 恢复，确保硬件效果不遗失。

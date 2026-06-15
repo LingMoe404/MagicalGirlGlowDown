@@ -103,6 +103,7 @@ async def _simulate(args: argparse.Namespace) -> int:
 
 
 async def _gigabyte_snapshot() -> dict[str, object]:
+    recovery_data_dir()
     from .gigabyte import GigabyteHelperClient
 
     client = GigabyteHelperClient()
@@ -114,6 +115,7 @@ async def _gigabyte_snapshot() -> dict[str, object]:
 
 
 async def _gigabyte_test_all(restore_after: float) -> int:
+    recovery_data_dir()
     from .gigabyte import GigabyteHelperClient
 
     client = GigabyteHelperClient()
@@ -157,6 +159,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.simulate:
         return asyncio.run(_simulate(args))
     if args.gigabyte_probe:
+        recovery_data_dir()
         from .gigabyte import GigabyteHelperClient
 
         probe = asyncio.run(GigabyteHelperClient().probe())

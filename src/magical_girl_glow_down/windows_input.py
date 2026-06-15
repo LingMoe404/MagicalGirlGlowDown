@@ -177,6 +177,21 @@ def register_game_controller_raw_input(hwnd: int) -> None:
 RID_INPUT = 0x10000003
 RIM_TYPEHID = 2
 UINT_ERROR = 0xFFFFFFFF
+RAW_INPUT_API_ARGUMENTS = (
+    wintypes.HANDLE,
+    wintypes.UINT,
+    wintypes.LPVOID,
+    ctypes.POINTER(wintypes.UINT),
+    wintypes.UINT,
+)
+
+
+def _get_raw_input_data() -> Any:
+    function: Any = ctypes.windll.user32.GetRawInputData
+    if getattr(function, "argtypes", None) != list(RAW_INPUT_API_ARGUMENTS):
+        function.argtypes = list(RAW_INPUT_API_ARGUMENTS)
+    function.restype = wintypes.UINT
+    return function
 
 
 class RAWINPUTHEADER(ctypes.Structure):
@@ -217,7 +232,8 @@ def parse_raw_hid_buffer(raw: bytes) -> tuple[int, bytes] | None:
 def read_raw_input_report(lparam: int) -> tuple[int, bytes] | None:
     size = wintypes.UINT()
     header_size = ctypes.sizeof(RAWINPUTHEADER)
-    result = ctypes.windll.user32.GetRawInputData(
+    get_raw_input_data = _get_raw_input_data()
+    result = get_raw_input_data(
         wintypes.HANDLE(lparam),
         RID_INPUT,
         None,
@@ -227,7 +243,7 @@ def read_raw_input_report(lparam: int) -> tuple[int, bytes] | None:
     if result == UINT_ERROR or size.value == 0:
         return None
     buffer = ctypes.create_string_buffer(size.value)
-    result = ctypes.windll.user32.GetRawInputData(
+    result = get_raw_input_data(
         wintypes.HANDLE(lparam),
         RID_INPUT,
         buffer,

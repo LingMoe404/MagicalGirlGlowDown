@@ -72,3 +72,85 @@ def test_cli_portable_autostart_requires_explicit_risk_flag(
     assert "confirm-portable-autostart-risk" in capsys.readouterr().err
 
 
+async def test_gigabyte_snapshot_initializes_recovery_storage_before_helper(
+    monkeypatch,
+) -> None:
+    call_order: list[str] = []
+
+    def initialize() -> None:
+        call_order.append("init")
+
+    monkeypatch.setattr("magical_girl_glow_down.main.recovery_data_dir", initialize)
+
+    class FakeClient:
+        def __init__(self) -> None:
+            call_order.append("helper")
+
+        async def probe(self):
+            call_order.append("probe")
+            return type(
+                "Probe",
+                (),
+                {
+                    "board_fingerprint": "board-A",
+                    "zones": (),
+                },
+            )()
+
+        async def snapshot(self, board_fingerprint, zones):
+            call_order.append("snapshot")
+            return {"boardFingerprint": board_fingerprint, "zones": list(zones)}
+
+    monkeypatch.setattr("magical_girl_glow_down.gigabyte.GigabyteHelperClient", FakeClient)
+
+    from magical_girl_glow_down.main import _gigabyte_snapshot
+
+    await _gigabyte_snapshot()
+
+    assert call_order[:2] == ["init", "helper"]
+
+
+async def test_gigabyte_test_all_initializes_recovery_storage_before_helper(
+    monkeypatch,
+) -> None:
+    call_order: list[str] = []
+
+    def initialize() -> None:
+        call_order.append("init")
+
+    monkeypatch.setattr("magical_girl_glow_down.main.recovery_data_dir", initialize)
+
+    class FakeClient:
+        def __init__(self) -> None:
+            call_order.append("helper")
+
+        async def probe(self):
+            call_order.append("probe")
+            return type(
+                "Probe",
+                (),
+                {
+                    "board_fingerprint": "board-A",
+                    "zones": (type("Zone", (), {"id": "logo"})(),),
+                },
+            )()
+
+        async def snapshot(self, board_fingerprint, zones):
+            call_order.append("snapshot")
+            return {"boardFingerprint": board_fingerprint, "zones": list(zones)}
+
+        async def blackout(self, board_fingerprint, snapshot):
+            call_order.append("blackout")
+
+        async def restore(self, board_fingerprint, snapshot):
+            call_order.append("restore")
+
+    monkeypatch.setattr("magical_girl_glow_down.gigabyte.GigabyteHelperClient", FakeClient)
+
+    from magical_girl_glow_down.main import _gigabyte_test_all
+
+    await _gigabyte_test_all(restore_after=0)
+
+    assert call_order[:2] == ["init", "helper"]
+
+

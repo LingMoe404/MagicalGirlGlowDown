@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace MagicalGirlGlowDown.GigabyteHelper;
 
@@ -37,24 +39,19 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
             "GigabyteHelperStage");
 
     public static bool IsSafeStagingRoot(string path, bool isReparsePoint) =>
-        Directory.Exists(path) && !isReparsePoint;
+        Directory.Exists(path) && !isReparsePoint && HasProtectedAcl(path);
 
     private static string CreateStagingDirectory(GccInstallation installation)
     {
         var root = BuildStagingRoot(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
-        if (!Directory.Exists(root))
-        {
-            throw new AdapterException(
-                "protected_stage_unavailable",
-                "The protected Gigabyte staging directory has not been initialized.");
-        }
-        var attributes = File.GetAttributes(root);
-        if (!IsSafeStagingRoot(root, attributes.HasFlag(FileAttributes.ReparsePoint)))
+        EnsureNoReparsePoints(root);
+        Directory.CreateDirectory(root);
+        if (!IsSafeStagingRoot(root, File.GetAttributes(root).HasFlag(FileAttributes.ReparsePoint)))
         {
             throw new AdapterException(
                 "protected_stage_invalid",
-                "The protected Gigabyte staging directory is a reparse point.");
+                "The protected Gigabyte staging directory is not protected.");
         }
 
         foreach (var existing in Directory.EnumerateDirectories(root))
@@ -75,6 +72,15 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
 
         var stagingDirectory = Path.Combine(root, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(stagingDirectory);
+        EnsureNoReparsePoints(stagingDirectory);
+        if (!IsSafeStagingRoot(
+                stagingDirectory,
+                File.GetAttributes(stagingDirectory).HasFlag(FileAttributes.ReparsePoint)))
+        {
+            throw new AdapterException(
+                "protected_stage_invalid",
+                "The Gigabyte staging directory is not protected.");
+        }
         foreach (var source in Directory.EnumerateFiles(
                      installation.MotherboardLibraryDirectory))
         {
@@ -99,6 +105,85 @@ public sealed class GccReflectionLightingSession : IGccLightingSession
         }
         return stagingDirectory;
     }
+
+    private static void EnsureNoReparsePoints(string path)
+    {
+        var current = new DirectoryInfo(path);
+        while (true)
+        {
+            if (current.Exists && File.GetAttributes(current.FullName).HasFlag(FileAttributes.ReparsePoint))
+            {
+                throw new AdapterException(
+                    "protected_stage_invalid",
+                    $"The protected Gigabyte staging directory is a reparse point: {current.FullName}");
+            }
+            if (current.Parent is null)
+            {
+                return;
+            }
+            current = current.Parent;
+        }
+    }
+
+    private static bool HasProtectedAcl(string path)
+    {
+        try
+        {
+            var security = new DirectoryInfo(path).GetAccessControl(AccessControlSections.Access);
+            var rules = security.GetAccessRules(
+                includeExplicit: true,
+                includeInherited: true,
+                targetType: typeof(SecurityIdentifier));
+            var hasSystem = false;
+            var hasAdministrators = false;
+            foreach (FileSystemAccessRule rule in rules)
+            {
+                if (rule.AccessControlType != AccessControlType.Allow)
+                {
+                    continue;
+                }
+                var identifier = (SecurityIdentifier)rule.IdentityReference;
+                if (identifier.IsWellKnown(WellKnownSidType.LocalSystemSid))
+                {
+                    hasSystem |= HasFullControl(rule);
+                    continue;
+                }
+                if (identifier.IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid))
+                {
+                    hasAdministrators |= HasFullControl(rule);
+                    continue;
+                }
+                if (HasWriteAccess(rule))
+                {
+                    return false;
+                }
+            }
+            return hasSystem && hasAdministrators;
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool HasFullControl(FileSystemAccessRule rule) =>
+        (rule.FileSystemRights & FileSystemRights.FullControl) == FileSystemRights.FullControl;
+
+    private static bool HasWriteAccess(FileSystemAccessRule rule) =>
+        (rule.FileSystemRights & (
+            FileSystemRights.Write |
+            FileSystemRights.CreateDirectories |
+            FileSystemRights.AppendData |
+            FileSystemRights.WriteAttributes |
+            FileSystemRights.WriteData |
+            FileSystemRights.WriteExtendedAttributes |
+            FileSystemRights.DeleteSubdirectoriesAndFiles |
+            FileSystemRights.ChangePermissions |
+            FileSystemRights.TakeOwnership)) != 0;
 
     public string GetLedSetting() =>
         (string?)InvokeAllowed("GetLedSetting")

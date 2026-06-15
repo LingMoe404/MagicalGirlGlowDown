@@ -46,11 +46,11 @@
 ## ⚠️ 常见故障排除 (Troubleshooting)
 
 ### Q1: 运行技嘉控制命令行时，提示 C# 辅助进程（GigabyteHelper）错误或初始化失败
-*   **原因 3**: `ProgramData\MagicalGirlGlowDown\GigabyteHelperStage` 暂存路径验证失败。如果此暂存路径（或其父目录）被恶意创建为重解析点（符号链接/连接点），或者非管理员组的普通用户拥有写入权限，辅助程序将出于安全考虑拒绝运行并抛出 `protected_stage_invalid` 或 `protected_stage_unavailable` 异常。
+*   **原因 3**: `ProgramData\MagicalGirlGlowDown\GigabyteHelperStage` 暂存路径验证失败。如果此暂存路径（或其父目录）被恶意创建为重解析点（符号链接/连接点），或者目录 ACL 允许非管理员写入，辅助程序将出于安全考虑拒绝运行并抛出 `protected_stage_invalid` 或 `protected_stage_unavailable` 异常。
 *   **原因 4**: 使用了打包版本，但设置了 `MAGICALGIRLGLOWDOWN_GCC_ROOT` 环境变量。打包版会强制忽略此覆盖并仅在 `C:\Program Files\GIGABYTE\Control Center` 下搜寻 GCC。
 *   **排查步骤**:
     1. 确保 GCC 在 Windows 中能正常调节灯光。
-    2. 检查 `%ProgramData%\MagicalGirlGlowDown` 是否为重解析点，并使用 `Get-Acl` 确认其 ACL 仅授予 SYSTEM 和 Administrators 读写权限。
+    2. 检查 `%ProgramData%\MagicalGirlGlowDown` 是否为重解析点，并确认其 ACL 不会把写入权限授予普通用户。
     3. 如果在源码运行环境下开发，可以使用环境变量指定自定义 helper 和 GCC 路径，但需物理机管理员权限启动，并留意控制台输出的 Override 警告日志。
     4. 打开管理员权限的 PowerShell，尝试直接运行辅助可执行文件以捕获 C# 的底层异常：
        ```powershell
@@ -121,11 +121,11 @@ Immediately blackouts all 7 validated zones and restores them after 5 seconds. R
 ## ⚠️ Troubleshooting FAQ
 
 ### Q1: GigabyteHelper process fails to initialize or crashes
-*   **Reason 3**: Staging path security verification failed. If `ProgramData\MagicalGirlGlowDown\GigabyteHelperStage` (or its parents) is configured as a reparse point (symlink/junction) or standard users have write access, the C# helper throws a `protected_stage_invalid` or `protected_stage_unavailable` exception.
+*   **Reason 3**: Staging path security verification failed. If `ProgramData\MagicalGirlGlowDown\GigabyteHelperStage` (or its parents) is configured as a reparse point (symlink/junction) or writable by non-administrative principals, the C# helper throws a `protected_stage_invalid` or `protected_stage_unavailable` exception.
 *   **Reason 4**: A packaged build is being run, but `MAGICALGIRLGLOWDOWN_GCC_ROOT` is configured. Packaged builds strictly ignore overrides and look for GCC only under `C:\Program Files\GIGABYTE\Control Center`.
 *   **Triage**:
     1. Verify GCC controls motherboard lights.
-    2. Check that `%ProgramData%\MagicalGirlGlowDown` is not a reparse point and its ACL permits write access only to SYSTEM and Administrators.
+    2. Check that `%ProgramData%\MagicalGirlGlowDown` is not a reparse point and that its ACL does not grant write access to ordinary users.
     3. If running from source, you can use environment overrides but keep an eye out for override warning logs.
     4. Run the executable directly in an elevated PowerShell to capture the .NET exception:
        ```powershell
