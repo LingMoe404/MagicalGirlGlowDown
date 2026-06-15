@@ -3,7 +3,7 @@
 [简体中文](README.md)
 
 ![Version](https://img.shields.io/badge/version-0.1.0-FB7299?style=for-the-badge)
-![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-Codex%20%7C%20Gemini%20%7C%20Antigravity-8E75B2?style=for-the-badge)
+![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-Codex_%7C_GPT_%7C_Antigravity_%7C_Gemini-8E75B2?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/OS-Windows_10_%7C_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12.10-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
@@ -16,7 +16,7 @@
 > including onboard zones, 5V ARGB headers, and 12V RGB headers. It also yields
 > control to NollieRGB and Gigabyte Control Center to reduce hardware conflicts
 > between lighting applications.<br>
-> *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with OpenAI Codex & Google Gemini (via Antigravity).*
+> *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with Codex, GPT, Antigravity & Gemini.*
 
 > [!IMPORTANT]
 > **⚠️ Hardware Compatibility Disclaimer**
@@ -254,13 +254,13 @@ development tools:
 * [.NET](https://dotnet.microsoft.com/): Isolated runtime for the Gigabyte
   lighting control component.
 * [uv](https://docs.astral.sh/uv/): Python project and dependency management.
-* **OpenAI GPT Codex**: Initial co-development AI.
-* **Google Gemini & Antigravity**: AI agent collaboration for refactoring, optimization, and testing.
+* **OpenAI Codex / GPT**: Initial co-development.
+* **Google Antigravity / Gemini**: Refactoring, optimization, and agent assistance.
 
 ## Behind the Project
 
 MagicalGirlGlowDown is an **AI-assisted project led by LingMoe404**:
-* **Initial Development**: Co-developed with OpenAI GPT Codex.
-* **Refactoring & Optimization**: Powered by Google Gemini & Antigravity agents.
+* **Initial Development**: Co-developed with OpenAI Codex / GPT.
+* **Refactoring & Optimization**: Powered by Google Antigravity / Gemini agents.
 
 Copyright © 2026 LingMoe404

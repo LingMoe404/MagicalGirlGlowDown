@@ -69,12 +69,12 @@ v0.1.0 - ✨ 魔法少女·静谧霓虹 (Magical Girl Glow Down) v0.1.0 - 始动
 ## 🤖 致谢 (Credits)
 
 本软件的诞生与进化离不开以下 AI 协作者与智能体平台的鼎力相助：
-*   **OpenAI GPT Codex**：初始共同开发 AI。
-*   **Google Gemini & Antigravity**：重构、优化与测试 AI 智能体。
+*   **OpenAI Codex / GPT**：初始共同开发。
+*   **Google Antigravity / Gemini**：重构优化与开发辅助。
 
 We would like to thank our AI collaborators and platform:
-*   **OpenAI GPT Codex**: Initial co-development AI.
-*   **Google Gemini & Antigravity**: AI agent collaboration for refactoring, optimization, and testing.
+*   **OpenAI Codex / GPT**: Initial co-development.
+*   **Google Antigravity / Gemini**: Refactoring, optimization, and agent assistance.
 
 ---
 *“观测者啊，哪怕深夜长眠，静谧霓虹也会在下一次触碰时为你再次亮起！”*

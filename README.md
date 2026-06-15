@@ -3,7 +3,7 @@
 [English](README_EN.md)
 
 ![Version](https://img.shields.io/badge/version-0.1.0-FB7299?style=for-the-badge)
-![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-Codex%20%7C%20Gemini%20%7C%20Antigravity-8E75B2?style=for-the-badge)
+![AI Co-developed](https://img.shields.io/badge/AI_Co--developed-Codex_%7C_GPT_%7C_Antigravity_%7C_Gemini-8E75B2?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/OS-Windows_10_%7C_11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12.10-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
@@ -11,7 +11,7 @@
 >
 > 一款运行在 Windows 后台的 RGB 待机管理工具。它会监听键盘、鼠标与游戏手柄活动，在电脑持续无输入后自动熄灭灯光，并在下一次操作时恢复原有效果。<br>
 > 支持 Nollie 系列控制器，以及经过实机验证的技嘉主板板载灯光、5V ARGB 与 12V RGB 接口；同时会主动避让 NollieRGB 和 Gigabyte Control Center，减少多个灯效程序争夺硬件的问题。<br>
-> *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with OpenAI Codex & Google Gemini (via Antigravity).*
+> *Built with Python, PySide6, HIDAPI and .NET · AI-assisted with Codex, GPT, Antigravity & Gemini.*
 
 > [!IMPORTANT]
 > **⚠️ 硬件支持限制声明 (Hardware Compatibility Disclaimer)**
@@ -214,13 +214,13 @@ dotnet test helper/MagicalGirlGlowDown.GigabyteHelper.Tests -c Release -v minima
 * [HIDAPI](https://github.com/libusb/hidapi)：Nollie USB HID 通信。
 * [.NET](https://dotnet.microsoft.com/)：隔离运行技嘉灯光控制组件。
 * [uv](https://docs.astral.sh/uv/)：Python 项目与依赖管理。
-* **OpenAI GPT Codex**：初始共同开发 AI。
-* **Google Gemini & Antigravity**：重构、优化与测试 AI 智能体。
+* **OpenAI Codex / GPT**：初始共同开发。
+* **Google Antigravity / Gemini**：重构优化与开发辅助。
 
 ## 开发幕后
 
 MagicalGirlGlowDown 是一个由 **泠萌404 主导，AI 协作开发的项目**：
-* **初始开发**：OpenAI GPT Codex 协作。
-* **重构优化**：Google Gemini & Antigravity 智能体协作。
+* **初始开发**：OpenAI Codex / GPT 协作。
+* **重构优化**：Google Antigravity / Gemini 智能体协作。
 
 Copyright © 2026 泠萌404
