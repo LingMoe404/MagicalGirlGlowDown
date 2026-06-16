@@ -2,6 +2,7 @@ import builtins
 import os
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from .branding import MODULE_ENTRY
 
@@ -11,9 +12,12 @@ def is_compiled() -> bool:
         return True
     if hasattr(builtins, "__compiled__"):
         return True
+    executable = Path(sys.executable)
+    if executable.name.lower() in {"python.exe", "pythonw.exe"}:
+        return executable.with_name("MagicalGirlGlowDown.exe").exists()
     # If the base name of the executable does not contain "python",
     # it is almost certainly a packaged/compiled binary executable.
-    return "python" not in os.path.basename(sys.executable).lower()
+    return "python" not in executable.name.lower()
 
 
 def build_runtime_command(

@@ -56,12 +56,22 @@ def test_is_compiled_detection() -> None:
             delattr(builtins, "__compiled__")
         assert is_compiled()
 
+    # 5. Test Nuitka standalone layout where the runtime exposes a virtual
+    # python.exe but the real application executable lives beside it.
+    with patch("sys.executable", "C:\\Program Files\\MagicalGirlGlowDown\\python.exe"), \
+         patch("pathlib.Path.exists", return_value=True):
+        if hasattr(sys, "frozen"):
+            delattr(sys, "frozen")
+        if hasattr(builtins, "__compiled__"):
+            delattr(builtins, "__compiled__")
+        assert is_compiled()
+
 
 def test_runtime_command_mitigates_nuitka_virtual_python() -> None:
-    # Simulate a compiled environment where sys.executable points to python.exe, 
-    # but MagicalGirlGlowDown.exe exists in the same folder.
-    with patch("magical_girl_glow_down.runtime.is_compiled", return_value=True), \
-         patch("sys.executable", "C:\\Program Files\\MagicalGirlGlowDown\\python.exe"), \
+    # Simulate a Nuitka standalone build where sys.executable points to a
+    # virtual python.exe but the real app executable exists in the same folder.
+    with patch("sys.executable", "C:\\Program Files\\MagicalGirlGlowDown\\python.exe"), \
+         patch("pathlib.Path.exists", return_value=True), \
          patch("os.path.exists", return_value=True):
         cmd = runtime_command(("--debug",))
         assert cmd == ("C:\\Program Files\\MagicalGirlGlowDown\\MagicalGirlGlowDown.exe", "--debug")
